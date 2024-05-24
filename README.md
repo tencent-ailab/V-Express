@@ -107,14 +107,14 @@ If you only have a picture and any talking audio. With the following script, our
 
 ```shell
 python inference.py \
-    --reference_image_path "./test_samples/short_case/10/ref.jpg" \
-    --audio_path "./test_samples/short_case/10/aud.mp3" \
-    --kps_path "./test_samples/short_case/10/kps.pth" \
-    --output_path "./output/short_case/talk_10_fix_face.mp4" \
+    --reference_image_path "./test_samples/short_case/tys/ref.jpg" \
+    --audio_path "./test_samples/short_case/tys/aud.mp3" \
+    --kps_path "./test_samples/short_case/tys/kps.pth" \
+    --output_path "./output/short_case/talk_tys_fix_face.mp4" \
     --retarget_strategy "fix_face"
 ```
 
-![fix_face](./assets/demo/talk_10_fix_face.gif)
+![fix_face](./assets/demo/talk_tys_fix_face.gif)
 
 **Scenario 3 (A's picture and B's talking video.)**
 
@@ -122,14 +122,14 @@ python inference.py \
 
 ```shell
 python inference.py \
-    --reference_image_path "./test_samples/short_case/10/ref.jpg" \
-    --audio_path "./test_samples/short_case/10/aud.mp3" \
-    --kps_path "./test_samples/short_case/10/kps.pth" \
-    --output_path "./output/short_case/talk_10_offset_retarget.mp4" \
+    --reference_image_path "./test_samples/short_case/tys/ref.jpg" \
+    --audio_path "./test_samples/short_case/tys/aud.mp3" \
+    --kps_path "./test_samples/short_case/tys/kps.pth" \
+    --output_path "./output/short_case/talk_tys_offset_retarget.mp4" \
     --retarget_strategy "offset_retarget"
 ```
 
-![offset_retarget](./assets/demo/talk_10_offset_retarget.gif)
+![offset_retarget](./assets/demo/talk_tys_offset_retarget.gif)
 
 - With the following script, our model generates a video with the same movements as the target video, and the character's lip-synching matches the target audio.
 
@@ -138,14 +138,14 @@ python inference.py \
 
 ```shell
 python inference.py \
-    --reference_image_path "./test_samples/short_case/10/ref.jpg" \
-    --audio_path "./test_samples/short_case/10/aud.mp3" \
-    --kps_path "./test_samples/short_case/10/kps.pth" \
-    --output_path "./output/short_case/talk_10_naive_retarget.mp4" \
+    --reference_image_path "./test_samples/short_case/tys/ref.jpg" \
+    --audio_path "./test_samples/short_case/tys/aud.mp3" \
+    --kps_path "./test_samples/short_case/tys/kps.pth" \
+    --output_path "./output/short_case/talk_tys_naive_retarget.mp4" \
     --retarget_strategy "naive_retarget"
 ```
 
-![naive_retarget](./assets/demo/talk_10_naive_retarget.gif)
+![naive_retarget](./assets/demo/talk_tys_naive_retarget.gif)
 
 ### More parameters
 
