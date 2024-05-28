@@ -57,8 +57,8 @@ def parse_args():
     parser.add_argument('--context_frames', type=int, default=12)
     parser.add_argument('--context_stride', type=int, default=1)
     parser.add_argument('--context_overlap', type=int, default=4)
-    parser.add_argument('--reference_attention_weight', default=1., type=float)
-    parser.add_argument('--audio_attention_weight', default=1., type=float)
+    parser.add_argument('--reference_attention_weight', default=0.95, type=float)
+    parser.add_argument('--audio_attention_weight', default=3., type=float)
 
     args = parser.parse_args()
 
