@@ -7,6 +7,7 @@ import numpy as np
 import os
 
 from imageio_ffmpeg import get_ffmpeg_exe
+from scipy.ndimage import median_filter
 
 
 tensor_interpolation = None
@@ -70,15 +71,16 @@ def save_video(video_tensor, audio_path, output_path, fps=30.0):
     video_tensor = video_tensor[0, ...]
     _, num_frames, height, width = video_tensor.shape
 
+    video_tensor = video_tensor.permute(1, 2, 3, 0)
+    video_np = (video_tensor * 255).numpy().astype(np.uint8)
+    video_np_filtered = median_filter(video_np, size=(3, 3, 3, 1))
+
     output_name = pathlib.Path(output_path).stem
     temp_output_path = output_path.replace(output_name, output_name + '-temp')
     video_writer = cv2.VideoWriter(temp_output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
     for i in range(num_frames):
-        frame_tensor = video_tensor[:, i, ...]  # [c, h, w]
-        frame_tensor = frame_tensor.permute(1, 2, 0)  # [h, w, c]
-
-        frame_image = (frame_tensor * 255).numpy().astype(np.uint8)
+        frame_image = video_np_filtered[i]
         frame_image = cv2.cvtColor(frame_image, cv2.COLOR_RGB2BGR)
         video_writer.write(frame_image)
     video_writer.release()
@@ -172,7 +174,7 @@ def retarget_kps(ref_kps, tgt_kps_list, only_offset=True):
         nose_offset = nose_offset[:, np.newaxis, :]
         ref_kps_repeat = np.tile(ref_kps, (tgt_kps_list.shape[0], 1, 1))
 
-        ref_kps_repeat[:, :, :] -= nose_offset
+        ref_kps_repeat[:, :, :] -= (nose_offset / 2.0)
         rescaled_tgt_kps_list = ref_kps_repeat
     else:
         nose_offset_x = rescaled_tgt_kps_list[0, 2, 0] - ref_kps[2][0]

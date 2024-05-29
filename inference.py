@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--image_height', type=int, default=512)
     parser.add_argument('--fps', type=float, default=30.0)
     parser.add_argument('--seed', type=int, default=42)
-    parser.add_argument('--num_inference_steps', type=int, default=30)
+    parser.add_argument('--num_inference_steps', type=int, default=25)
     parser.add_argument('--guidance_scale', type=float, default=3.5)
     parser.add_argument('--context_frames', type=int, default=12)
     parser.add_argument('--context_stride', type=int, default=1)

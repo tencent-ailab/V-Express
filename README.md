@@ -23,6 +23,7 @@ Our method gradually enables effective control by weak conditions, thereby achie
 
 ## Release
 
+- [2024/05/29] 🔥 We have added video post-processing that can effectively mitigate the flicker problem.
 - [2024/05/23] 🔥 We release the code and models.
 
 ## Installation
@@ -98,7 +99,8 @@ python inference.py \
     --audio_path "./test_samples/short_case/10/aud.mp3" \
     --kps_path "./test_samples/short_case/10/kps.pth" \
     --output_path "./output/short_case/talk_10_no_retarget.mp4" \
-    --retarget_strategy "no_retarget"
+    --retarget_strategy "no_retarget" \
+    --num_inference_steps 30
 ```
 
 ![no_retarget](./assets/demo/talk_10_no_retarget.gif)
@@ -113,7 +115,8 @@ python inference.py \
     --audio_path "./test_samples/short_case/tys/aud.mp3" \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_fix_face.mp4" \
-    --retarget_strategy "fix_face"
+    --retarget_strategy "fix_face" \
+    --num_inference_steps 30
 ```
 
 ![fix_face](./assets/demo/talk_tys_fix_face.gif)
@@ -128,7 +131,8 @@ python inference.py \
     --audio_path "./test_samples/short_case/tys/aud.mp3" \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_offset_retarget.mp4" \
-    --retarget_strategy "offset_retarget"
+    --retarget_strategy "offset_retarget" \
+    --num_inference_steps 30
 ```
 
 ![offset_retarget](./assets/demo/talk_tys_offset_retarget.gif)
@@ -144,7 +148,8 @@ python inference.py \
     --audio_path "./test_samples/short_case/tys/aud.mp3" \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_naive_retarget.mp4" \
-    --retarget_strategy "naive_retarget"
+    --retarget_strategy "naive_retarget" \
+    --num_inference_steps 30
 ```
 
 ![naive_retarget](./assets/demo/talk_tys_naive_retarget.gif)
