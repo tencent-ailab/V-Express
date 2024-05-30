@@ -1,10 +1,10 @@
 import argparse
-
 import os
 import cv2
 import torch
 from insightface.app import FaceAnalysis
 from imageio_ffmpeg import get_ffmpeg_exe
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--video_path', type=str, default='')
@@ -28,15 +28,29 @@ os.system(f'{get_ffmpeg_exe()} -i "{args.video_path}" -y -vn "{args.audio_save_p
 
 kps_sequence = []
 video_capture = cv2.VideoCapture(args.video_path)
+total_frames = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
 frame_idx = 0
+
 while video_capture.isOpened():
     ret, frame = video_capture.read()
     if not ret:
         break
+
+    start_time = time.time()
     faces = app.get(frame)
+    end_time = time.time()
+    duration = end_time - start_time
+
     assert len(faces) == 1, f'There are {len(faces)} faces in the {frame_idx}-th frame. Only one face is supported.'
 
     kps = faces[0].kps[:3]
     kps_sequence.append(kps)
     frame_idx += 1
+
+    processed_frames = frame_idx
+    remaining_frames = total_frames - frame_idx
+
+    print(f"Frame {frame_idx}: Face detection duration = {duration:.4f} seconds")
+    print(f"Status: Processed {processed_frames} frames, {remaining_frames} frames remaining")
+
 torch.save(kps_sequence, args.kps_sequence_save_path)
