@@ -2,9 +2,15 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+V-Express
 # C extensions
 *.so
+executed_command.txt
+venv
+.vs
+outputs
+model_ckpts
+temp_process
 
 # Distribution / packaging
 .Python
