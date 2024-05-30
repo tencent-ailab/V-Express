@@ -162,9 +162,8 @@ For different types of input condition, such as reference image and target audio
 python inference.py \
     --reference_image_path "./test_samples/short_case/10/ref.jpg" \
     --audio_path "./test_samples/short_case/10/aud.mp3" \
-    --kps_path "./test_samples/short_case/10/kps.pth" \
     --output_path "./output/short_case/talk_10_fix_face_with_weight.mp4" \
-    --retarget_strategy "fix_face" \
+    --retarget_strategy "fix_face" \    # this strategy do not need kps info
     --reference_attention_weight 0.95 \
     --audio_attention_weight 3.0
 ```
