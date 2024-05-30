@@ -78,9 +78,9 @@ If you have a target talking video, you can follow the script below to extract t
 
 ```shell
 python scripts/extract_kps_sequence_and_audio.py \
-    --video_path "./test_samples/short_case/10/gt.mp4" \
-    --kps_sequence_save_path "./test_samples/short_case/10/kps.pth" \
-    --audio_save_path "./test_samples/short_case/10/aud.mp3"
+    --video_path "./test_samples/short_case/AOC/gt.mp4" \
+    --kps_sequence_save_path "./test_samples/short_case/AOC/kps.pth" \
+    --audio_save_path "./test_samples/short_case/AOC/aud.mp3"
 ```
 
 We recommend cropping a clear square face image as in the example below and making sure the resolution is no lower than 512x512. The green to red boxes in the image below are the recommended cropping ranges.
@@ -95,15 +95,15 @@ If you have a picture of A and a talking video of A in another scene. Then you s
 
 ```shell
 python inference.py \
-    --reference_image_path "./test_samples/short_case/10/ref.jpg" \
-    --audio_path "./test_samples/short_case/10/aud.mp3" \
-    --kps_path "./test_samples/short_case/10/kps.pth" \
-    --output_path "./output/short_case/talk_10_no_retarget.mp4" \
+    --reference_image_path "./test_samples/short_case/AOC/ref.jpg" \
+    --audio_path "./test_samples/short_case/AOC/aud.mp3" \
+    --kps_path "./test_samples/short_case/AOC/kps.pth" \
+    --output_path "./output/short_case/talk_AOC_no_retarget.mp4" \
     --retarget_strategy "no_retarget" \
-    --num_inference_steps 30
+    --num_inference_steps 25
 ```
 
-![no_retarget](./assets/demo/talk_10_no_retarget.gif)
+![no_retarget](./assets/demo/gt_generate_compare.gif)
 
 **Scenario 2 (A's picture and any talking audio.)**
 
@@ -113,13 +113,12 @@ If you only have a picture and any talking audio. With the following script, our
 python inference.py \
     --reference_image_path "./test_samples/short_case/tys/ref.jpg" \
     --audio_path "./test_samples/short_case/tys/aud.mp3" \
-    --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_fix_face.mp4" \
     --retarget_strategy "fix_face" \
-    --num_inference_steps 30
+    --num_inference_steps 25
 ```
 
-![fix_face](./assets/demo/talk_tys_fix_face.gif)
+![fix_face](./assets/demo/talk_tys_fix_face_post_processing.gif)
 
 **Scenario 3 (A's picture and B's talking video.)**
 
@@ -132,10 +131,10 @@ python inference.py \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_offset_retarget.mp4" \
     --retarget_strategy "offset_retarget" \
-    --num_inference_steps 30
+    --num_inference_steps 25
 ```
 
-![offset_retarget](./assets/demo/talk_tys_offset_retarget.gif)
+![offset_retarget](./assets/demo/talk_tys_offset_retarget_post_processing.gif)
 
 - With the following script, our model generates a video with the same movements as the target video, and the character's lip-synching matches the target audio.
 
@@ -149,10 +148,10 @@ python inference.py \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_naive_retarget.mp4" \
     --retarget_strategy "naive_retarget" \
-    --num_inference_steps 30
+    --num_inference_steps 25
 ```
 
-![naive_retarget](./assets/demo/talk_tys_naive_retarget.gif)
+![naive_retarget](./assets/demo/talk_tys_naive_retarget_post_processing.gif)
 
 ### More parameters
 
