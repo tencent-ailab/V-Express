@@ -105,9 +105,11 @@ def auto_crop_image(image_path, expand_percent=0.2, crop_size=(512, 512)):
 
 
 def generate_output_video(reference_image_path, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height):
+    print("auto cropping...")
     if auto_crop:
         auto_crop_image(reference_image_path, crop_size=(crop_width, crop_height))
     
+    print("starting inference...")
     command = [
         python_executable, "inference.py",
         "--reference_image_path", reference_image_path,
@@ -154,6 +156,7 @@ def process_input(reference_image, target_input, output_path, retarget_strategy,
     if mime_type.startswith("video/"):  # Video input
         audio_path = os.path.join(temp_dir, "target_audio.mp3")
         kps_path = os.path.join(temp_dir, "kps.pth")
+        print("generating generate_kps_sequence_and_audio...")
         generate_kps_sequence_and_audio(target_input, kps_path, audio_path)
     elif mime_type.startswith("audio/"):  # Audio input
         audio_path = target_input
