@@ -91,7 +91,7 @@ We recommend cropping a clear square face image as in the example below and maki
 
 **Scenario 1 (A's picture and A's talking video.) (Best Practice)**
 
-If you have a picture of A and a talking video of A in another scene. Then you should run the following script. Our model is able to generate speaking videos that are consistent with the given video. _Here we only provide some gif results. You can see more examples with audio on our [project page](https://tenvence.github.io/p/v-express/)._
+If you have a picture of A and a talking video of A in another scene. Then you should run the following script. Our model is able to generate speaking videos that are consistent with the given video. _You can see more examples on our [project page](https://tenvence.github.io/p/v-express/)._
 
 ```shell
 python inference.py \
@@ -103,7 +103,11 @@ python inference.py \
     --num_inference_steps 25
 ```
 
-![no_retarget](./assets/demo/gt_generate_compare.gif)
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/17dd4103-eaf7-4045-8bc0-e90093deaee8" style="width: 80%; height: auto;"></video>
+    </td>
+</tr>
 
 **Scenario 2 (A's picture and any talking audio.)**
 
@@ -118,7 +122,11 @@ python inference.py \
     --num_inference_steps 25
 ```
 
-![fix_face](./assets/demo/talk_tys_fix_face_post_processing.gif)
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/fe782c16-f341-424d-83ce-89531af2a292" style="width: 40%; height: auto;"></video>
+    </td>
+</tr>
 
 **Scenario 3 (A's picture and B's talking video.)**
 
@@ -134,7 +142,11 @@ python inference.py \
     --num_inference_steps 25
 ```
 
-![offset_retarget](./assets/demo/talk_tys_offset_retarget_post_processing.gif)
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/4951d06c-579d-499e-994d-14fa7e524713" style="width: 40%; height: auto;"></video>
+    </td>
+</tr>
 
 - With the following script, our model generates a video with the same movements as the target video, and the character's lip-synching matches the target audio.
 
@@ -151,7 +163,11 @@ python inference.py \
     --num_inference_steps 25
 ```
 
-![naive_retarget](./assets/demo/talk_tys_naive_retarget_post_processing.gif)
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/d555ed02-56eb-44e5-94e5-772edcd3338b" style="width: 40%; height: auto;"></video>
+    </td>
+</tr>
 
 ### More parameters
 
@@ -169,7 +185,11 @@ python inference.py \
 
 We show the different effects produced by different parameters in the following video. You can adjust the parameters accordingly to your needs.
 
-![atten_weight](./assets/demo/fix_face_weight.gif)
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/2e977b8c-c69b-4815-8565-d4d7c3c349a9" style="width: 100%; height: auto;"></video>
+    </td>
+</tr>
 
 ## Acknowledgements
 
