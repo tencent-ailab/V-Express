@@ -299,7 +299,7 @@ def launch_interface():
 
                             Input picture and target video (different person) select : offset_retarget or naive_retarget
 
-                            naive_retarget supposed to be better than offset_retarget
+                            Please look examples in Tests folder to see which settings you like most. I feel like offset_retarget is best
 
                             For different types of input condition, such as reference image and target audio, we provide parameters for adjusting the role played by that condition information in the model prediction. We refer to these two parameters as reference_attention_weight and audio_attention_weight. Different parameters can be applied to achieve different effects using the following script. Through our experiments, we suggest that reference_attention_weight takes the value 0.9-1.0 and audio_attention_weight takes the value 1.0-3.0.
                             """)
