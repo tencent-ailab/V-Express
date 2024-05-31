@@ -279,8 +279,9 @@ def launch_interface():
                     type="filepath",
                     file_count="single",
                     file_types=[
-                        ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp",  # Image extensions
-                        ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"    # Video extensions
+                        ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm",  # Video extensions
+                        ".3gp", ".m4v", ".mpg", ".mpeg", ".m2v", ".m4v", ".mts",  # More video extensions
+                        ".mp3", ".wav", ".aac", ".flac", ".m4a", ".wma", ".ogg"   # Audio extensions
                     ],
                     height=512        )
                 video_output = gr.Video(visible=False)
