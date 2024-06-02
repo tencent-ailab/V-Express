@@ -33,6 +33,7 @@ while video_capture.isOpened():
     ret, frame = video_capture.read()
     if not ret:
         break
+    frame = cv2.resize(frame, (args.width, args.height))
     faces = app.get(frame)
     assert len(faces) == 1, f'There are {len(faces)} faces in the {frame_idx}-th frame. Only one face is supported.'
 
