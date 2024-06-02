@@ -29,27 +29,14 @@ Our method gradually enables effective control by weak conditions, thereby achie
 ## Installation
 
 ```
-# install requirements
-pip install diffusers==0.24.0
-pip install imageio-ffmpeg==0.4.9
-pip install insightface==0.7.3
-pip install omegaconf==2.2.3
-pip install onnxruntime==1.16.3
-pip install safetensors==0.4.2
-pip install torch==2.0.1
-pip install torchaudio==2.0.2
-pip install torchvision==0.15.2
-pip install transformers==4.30.2
-pip install einops==0.4.1
-pip install tqdm==4.66.1
-pip install xformers==0.0.22
-pip install av==11.0.0
-
 # download the codes
 git clone https://github.com/tencent-ailab/V-Express
 
-# download the models
+# install requirements
 cd V-Express
+pip install -r requirements.txt
+
+# download the models
 git lfs install
 git clone https://huggingface.co/tk93/V-Express
 mv V-Express/model_ckpts model_ckpts
