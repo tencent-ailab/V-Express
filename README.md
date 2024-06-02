@@ -42,6 +42,8 @@ pip install torchvision==0.15.2
 pip install transformers==4.30.2
 pip install einops==0.4.1
 pip install tqdm==4.66.1
+pip install xformers==0.0.22
+pip install av==11.0.0
 
 # download the codes
 git clone https://github.com/tencent-ailab/V-Express
