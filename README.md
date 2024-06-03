@@ -1,3 +1,7 @@
+# this repo is only for patreon users
+
+# original repo : https://github.com/tencent-ailab/V-Express
+
 # **_V-Express: Conditional Dropout for Progressive Training of Portrait Video Generation_**
 
 <a href='https://tenvence.github.io/p/v-express/'><img src='https://img.shields.io/badge/Project-Page-green'></a>
