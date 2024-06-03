@@ -161,7 +161,7 @@ def auto_crop_image(image_path, expand_percent, crop_size=(512, 512)):
     resized_img.save(image_path, format='PNG')
      
 
-def generate_output_video(reference_image_path, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height, crop_expansion):
+def generate_output_video(reference_image_path, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height, crop_expansion,image_width,image_height):
     print("auto cropping...")
     if auto_crop:
         auto_crop_image(reference_image_path,crop_expansion, crop_size=(crop_width, crop_height))
@@ -176,7 +176,9 @@ def generate_output_video(reference_image_path, audio_path, kps_path, output_pat
         "--retarget_strategy", retarget_strategy,
         "--num_inference_steps", str(num_inference_steps),
         "--reference_attention_weight", str(reference_attention_weight),
-        "--audio_attention_weight", str(audio_attention_weight)
+        "--audio_attention_weight", str(audio_attention_weight),     
+        "--image_width", str(image_width),
+        "--image_height", str(image_height)
     ]
     
     with open("executed_command.txt", "w") as file:
@@ -193,7 +195,7 @@ def sanitize_folder_name(name):
     return sanitized_name
 
 # Function to handle the input and generate the output
-def process_input(reference_image, target_input, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height, crop_expansion):
+def process_input(reference_image, target_input, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height, crop_expansion,image_width,image_height):
     # Create temp_process directory for intermediate files
     temp_process_dir = "temp_process"
     os.makedirs(temp_process_dir, exist_ok=True)
@@ -236,7 +238,7 @@ def process_input(reference_image, target_input, retarget_strategy, num_inferenc
     output_path = os.path.join(output_dir, f"{output_file_name}{output_file_count:04d}{output_file_ext}")
 
     
-    output_video_path, cropped_image_path = generate_output_video(reference_image, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop,crop_width,crop_height, crop_expansion)
+    output_video_path, cropped_image_path = generate_output_video(reference_image, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop,crop_width,crop_height, crop_expansion,image_width,image_height)
     
     return output_video_path, cropped_image_path
 
@@ -244,11 +246,19 @@ def launch_interface():
     retarget_strategies = ["fix_face", "no_retarget", "offset_retarget", "naive_retarget"]
    
     with gr.Blocks() as demo:
-        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V2 : https://www.patreon.com/posts/105251204")
+        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V3 : https://www.patreon.com/posts/105251204")
         with gr.Row():          
             with gr.Column():
                 input_image = gr.Image(label="Reference Image", format="png", type="filepath", height=512)
                 generate_button = gr.Button("Generate Talking Video")
+
+                with gr.Row():
+
+                    with gr.Column(min_width=0):
+                        image_width = gr.Number(label="Target Video Width", value=512)
+
+                    with gr.Column(min_width=0):
+                        image_height = gr.Number(label="Target Video Height", value=512)
 
                 with gr.Row():
                     with gr.Column(min_width=0):
@@ -324,7 +334,9 @@ def launch_interface():
                 auto_crop,
                 crop_width,
                 crop_height,
-                crop_expansion
+                crop_expansion,
+                image_width,
+                image_height
             ],
             outputs=[output_video, output_image]
         )
