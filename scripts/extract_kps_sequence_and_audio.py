@@ -44,7 +44,11 @@ while video_capture.isOpened():
     if not ret:
         break
 
+
     start_time = time.time()
+
+    frame = cv2.resize(frame, (args.width, args.height))
+
     faces = app.get(frame)
     end_time = time.time()
     duration = end_time - start_time

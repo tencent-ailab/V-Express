@@ -193,7 +193,7 @@ def main():
     reference_image = reference_image.resize((args.image_height, args.image_width))
 
     reference_image_for_kps = cv2.imread(args.reference_image_path)
-    reference_image_for_kps = cv2.resize(reference_image_for_kps, (args.image_height, args.image_width))
+    reference_image_for_kps = cv2.resize(reference_image_for_kps, (args.image_width, args.image_height))
     reference_kps = app.get(reference_image_for_kps)[0].kps[:3]
 
     _, audio_waveform, meta_info = torchvision.io.read_video(os.path.join(os.path.dirname(args.audio_path), os.path.basename(args.audio_path)), pts_unit='sec')
