@@ -1,6 +1,8 @@
-# this repo is only for patreon users
+# This repo is only for Patreon users : https://www.patreon.com/posts/105251204
 
-# original repo : https://github.com/tencent-ailab/V-Express
+# You have to get installers from : https://www.patreon.com/posts/105251204
+
+# Original repo : https://github.com/tencent-ailab/V-Express
 
 # **_V-Express: Conditional Dropout for Progressive Training of Portrait Video Generation_**
 
