@@ -72,8 +72,7 @@ def load_reference_net(unet_config_path, reference_net_path, dtype, device):
     return reference_net
 
 
-def load_denoising_unet(unet_config_path, denoising_unet_path, motion_module_path, dtype, device):
-    inference_config_path = './inference_v2.yaml'
+def load_denoising_unet(inference_config_path, unet_config_path, denoising_unet_path, motion_module_path, dtype, device):
     inference_config = OmegaConf.load(inference_config_path)
     denoising_unet = UNet3DConditionModel.from_config_2d(
         unet_config_path,
@@ -121,8 +120,7 @@ def load_audio_projection(
     return audio_projection
 
 
-def get_scheduler():
-    inference_config_path = './inference_v2.yaml'
+def get_scheduler(inference_config_path):
     inference_config = OmegaConf.load(inference_config_path)
     scheduler_kwargs = OmegaConf.to_container(inference_config.noise_scheduler_kwargs)
     scheduler = DDIMScheduler(**scheduler_kwargs)
@@ -149,9 +147,13 @@ def main():
     audio_projection_path = args.audio_projection_path
     motion_module_path = args.motion_module_path
 
-    scheduler = get_scheduler()
+    inference_config_path = './inference_v2.yaml'
+    scheduler = get_scheduler(inference_config_path)
     reference_net = load_reference_net(unet_config_path, reference_net_path, dtype, device)
-    denoising_unet = load_denoising_unet(unet_config_path, denoising_unet_path, motion_module_path, dtype, device)
+    denoising_unet = load_denoising_unet(
+        inference_config_path, unet_config_path, denoising_unet_path, motion_module_path,
+        dtype, device
+    )
     v_kps_guider = load_v_kps_guider(v_kps_guider_path, dtype, device)
     audio_projection = load_audio_projection(
         audio_projection_path,

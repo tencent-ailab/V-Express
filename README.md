@@ -23,6 +23,7 @@ Our method gradually enables effective control by weak conditions, thereby achie
 
 ## Release
 
+- [2024/06/03] 🔥 If you are using ComfyUI, you can try [ComfyUI-V-Express](https://github.com/tiankuan93/ComfyUI-V-Express).
 - [2024/05/29] 🔥 We have added video post-processing that can effectively mitigate the flicker problem.
 - [2024/05/23] 🔥 We release the code and models.
 
@@ -59,7 +60,7 @@ mv V-Express/model_ckpts model_ckpts
 
 ## Download Models
 
-you can download models from [here](https://huggingface.co/tk93/V-Express). We have included all the required models in the model card. You can also download the models separately from the original repository.
+You can download models from [here](https://huggingface.co/tk93/V-Express). We have included all the required models in the model card. You can also download the models separately from the original repository.
 
 - [stabilityai/sd-vae-ft-mse](https://huggingface.co/stabilityai/sd-vae-ft-mse).
 - [runwayml/stable-diffusion-v1-5](https://huggingface.co/runwayml/stable-diffusion-v1-5). Only the model configuration file for unet is needed here.
