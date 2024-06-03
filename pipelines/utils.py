@@ -65,6 +65,19 @@ def draw_kps_image(image, kps, color_list=[(255, 0, 0), (0, 255, 0), (0, 0, 255)
     return canvas
 
 
+import os
+import pathlib
+import shutil
+import cv2
+import numpy as np
+from scipy.ndimage.filters import median_filter
+
+def get_ffmpeg_exe():
+    if os.name == 'nt':  # Windows
+        return 'ffmpeg'
+    else:  # Ubuntu and other Unix-based systems
+        return 'ffmpeg'
+
 def save_video(video_tensor, audio_path, output_path, fps=30.0):
     pathlib.Path(output_path).parent.mkdir(exist_ok=True, parents=True)
 
@@ -88,7 +101,11 @@ def save_video(video_tensor, audio_path, output_path, fps=30.0):
     cmd = (f'{get_ffmpeg_exe()} -i "{temp_output_path}" -i "{audio_path}" '
            f'-map 0:v -map 1:a -c:v h264 -shortest -y "{output_path}" -loglevel quiet')
     os.system(cmd)
-    os.system(f'rm -rf "{temp_output_path}"')
+
+    if os.name == 'nt':  # Windows
+        os.system(f'del /q "{temp_output_path}"')
+    else:  # Ubuntu and other Unix-based systems
+        os.system(f'rm -rf "{temp_output_path}"')
 
 
 def compute_dist(x1, y1, x2, y2):
