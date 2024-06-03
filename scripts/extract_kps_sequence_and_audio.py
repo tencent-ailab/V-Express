@@ -5,6 +5,7 @@ import torch
 from insightface.app import FaceAnalysis
 from imageio_ffmpeg import get_ffmpeg_exe
 import time
+import subprocess
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--video_path', type=str, default='')
@@ -17,6 +18,12 @@ parser.add_argument('--height', type=int, default=512)
 parser.add_argument('--width', type=int, default=512)
 args = parser.parse_args()
 
+# Convert paths to absolute paths
+args.video_path = os.path.abspath(args.video_path)
+args.kps_sequence_save_path = os.path.abspath(args.kps_sequence_save_path)
+args.audio_save_path = os.path.abspath(args.audio_save_path)
+args.insightface_model_path = os.path.abspath(args.insightface_model_path)
+
 app = FaceAnalysis(
     providers=['CUDAExecutionProvider' if args.device == 'cuda' else 'CPUExecutionProvider'],
     provider_options=[{'device_id': args.gpu_id}] if args.device == 'cuda' else [],
@@ -24,7 +31,8 @@ app = FaceAnalysis(
 )
 app.prepare(ctx_id=0, det_size=(args.height, args.width))
 
-os.system(f'{get_ffmpeg_exe()} -i "{args.video_path}" -y -vn "{args.audio_save_path}"')
+# Use subprocess.run() with shell=True for paths with space characters
+subprocess.run(f'"{get_ffmpeg_exe()}" -i "{args.video_path}" -y -vn "{args.audio_save_path}"', shell=True)
 
 kps_sequence = []
 video_capture = cv2.VideoCapture(args.video_path)
@@ -53,4 +61,5 @@ while video_capture.isOpened():
     print(f"Frame {frame_idx}: Face detection duration = {duration:.4f} seconds")
     print(f"Status: Processed {processed_frames} frames, {remaining_frames} frames remaining")
 
+# Use double quotes for paths with space characters
 torch.save(kps_sequence, args.kps_sequence_save_path)

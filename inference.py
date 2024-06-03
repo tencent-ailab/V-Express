@@ -196,7 +196,7 @@ def main():
     reference_image_for_kps = cv2.resize(reference_image_for_kps, (args.image_height, args.image_width))
     reference_kps = app.get(reference_image_for_kps)[0].kps[:3]
 
-    _, audio_waveform, meta_info = torchvision.io.read_video(args.audio_path, pts_unit='sec')
+    _, audio_waveform, meta_info = torchvision.io.read_video(os.path.join(os.path.dirname(args.audio_path), os.path.basename(args.audio_path)), pts_unit='sec')
     audio_sampling_rate = meta_info['audio_fps']
     print(f'Length of audio is {audio_waveform.shape[1]} with the sampling rate of {audio_sampling_rate}.')
     if audio_sampling_rate != args.standard_audio_sampling_rate:

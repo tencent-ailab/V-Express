@@ -244,7 +244,7 @@ def launch_interface():
     retarget_strategies = ["fix_face", "no_retarget", "offset_retarget", "naive_retarget"]
    
     with gr.Blocks() as demo:
-        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V1 : https://www.patreon.com/posts/105251204")
+        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V2 : https://www.patreon.com/posts/105251204")
         with gr.Row():          
             with gr.Column():
                 input_image = gr.Image(label="Reference Image", format="png", type="filepath", height=512)
