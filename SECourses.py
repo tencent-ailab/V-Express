@@ -55,6 +55,33 @@ def convert_audio_to_mp3(audio_path, mp3_path):
     command = ["ffmpeg", "-i", audio_path, "-acodec", "libmp3lame", "-q:a", "2", mp3_path]
     subprocess.call(command)
 
+def crop_and_save_image(image_path, auto_crop, crop_width, crop_height, crop_expansion):
+    cropped_image = auto_crop_image(image_path, crop_expansion, crop_size=(crop_width, crop_height))
+    if cropped_image is not None:
+        cropped_folder = os.path.join("outputs", "cropped_images")
+        os.makedirs(cropped_folder, exist_ok=True)
+        
+        # Get the base name and extension of the image file
+        base_name, extension = os.path.splitext(os.path.basename(image_path))
+        
+        # Initialize the counter for the image number
+        counter = 1
+        
+        # Generate the new image name with the incremented number
+        new_image_name = f"{base_name}_{counter:04d}{extension}"
+        cropped_image_path = os.path.join(cropped_folder, new_image_name)
+        
+        # Check if the image already exists and increment the counter until a unique name is found
+        while os.path.exists(cropped_image_path):
+            counter += 1
+            new_image_name = f"{base_name}_{counter:04d}{extension}"
+            cropped_image_path = os.path.join(cropped_folder, new_image_name)
+        
+        # Save the cropped image with the new name
+        cropped_image.save(cropped_image_path, format='PNG')
+        return cropped_image_path
+    return None
+
 # Function to generate kps sequence and audio from video
 def generate_kps_sequence_and_audio(video_path, kps_sequence_save_path, audio_save_path):
     command = [python_executable, "scripts/extract_kps_sequence_and_audio.py", "--video_path", video_path, "--kps_sequence_save_path", kps_sequence_save_path, "--audio_save_path", audio_save_path]
@@ -159,6 +186,7 @@ def auto_crop_image(image_path, expand_percent, crop_size=(512, 512)):
 
     # Save the resized image as PNG
     resized_img.save(image_path, format='PNG')
+    return resized_img
      
 
 def generate_output_video(reference_image_path, audio_path, kps_path, output_path, retarget_strategy, num_inference_steps, reference_attention_weight, audio_attention_weight, auto_crop, crop_width, crop_height, crop_expansion,image_width,image_height):
@@ -246,12 +274,12 @@ def launch_interface():
     retarget_strategies = ["fix_face", "no_retarget", "offset_retarget", "naive_retarget"]
    
     with gr.Blocks() as demo:
-        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V3 : https://www.patreon.com/posts/105251204")
+        gr.Markdown("# Tencent AI Lab - V-Express Image to Animation V4 : https://www.patreon.com/posts/105251204")
         with gr.Row():          
             with gr.Column():
                 input_image = gr.Image(label="Reference Image", format="png", type="filepath", height=512)
                 generate_button = gr.Button("Generate Talking Video")
-
+                crop_button = gr.Button("Crop Image")
                 with gr.Row():
 
                     with gr.Column(min_width=0):
@@ -339,6 +367,18 @@ def launch_interface():
                 image_height
             ],
             outputs=[output_video, output_image]
+        )
+
+        crop_button.click(
+            fn=crop_and_save_image,
+            inputs=[
+                input_image,
+                auto_crop,
+                crop_width,
+                crop_height,
+                crop_expansion
+            ],
+            outputs=output_image
         )
     
     demo.queue()

@@ -24,6 +24,9 @@ lib/
 lib64/
 parts/
 sdist/
+assumed_head.png
+expanded_face.png
+final_cropped_img.png
 var/
 wheels/
 share/python-wheels/
