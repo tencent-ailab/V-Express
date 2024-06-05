@@ -340,7 +340,7 @@ def launch_interface():
 
                             Please look examples in Tests folder to see which settings you like most. I feel like offset_retarget is best
 
-                            You can turn up reference_attention_weight to make the model maintain higher character consistency, and turn down audio_attention_weight to reduce mouth artifacts.
+                            You can turn up reference_attention_weight to make the model maintain higher character consistency, and turn down audio_attention_weight to reduce mouth artifacts. E.g. setting both values to 1.0
                             """)
 
 
