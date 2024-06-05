@@ -1,7 +1,7 @@
 # **_V-Express: Conditional Dropout for Progressive Training of Portrait Video Generation_**
 
 <a href='https://tenvence.github.io/p/v-express/'><img src='https://img.shields.io/badge/Project-Page-green'></a>
-<a href='https://tenvence.github.io/p/v-express/'><img src='https://img.shields.io/badge/Technique-Report-red'></a>
+<a href='https://arxiv.org/abs/2406.02511'><img src='https://img.shields.io/badge/Technique-Report-red'></a>
 <a href='https://huggingface.co/tk93/V-Express'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-blue'></a>
 
 <!-- [![GitHub](https://img.shields.io/github/stars/tencent-ailab/IP-Adapter?style=social)](https://github.com/tencent-ailab/IP-Adapter/) -->
@@ -23,6 +23,7 @@ Our method gradually enables effective control by weak conditions, thereby achie
 
 ## Release
 
+- [2024/06/05] 🔥 We have released the technique report on [arXiv](https://arxiv.org/abs/2406.02511).
 - [2024/06/03] 🔥 If you are using ComfyUI, you can try [ComfyUI-V-Express](https://github.com/tiankuan93/ComfyUI-V-Express).
 - [2024/05/29] 🔥 We have added video post-processing that can effectively mitigate the flicker problem.
 - [2024/05/23] 🔥 We release the code and models.
@@ -208,7 +209,7 @@ If you find V-Express useful for your research and applications, please cite usi
 @article{wang2024V-Express,
   title={V-Express: Conditional Dropout for Progressive Training of Portrait Video Generation},
   author={Wang, Cong and Tian, Kuan and Zhang, Jun and Guan, Yonghang and Luo, Feng and Shen, Fei and Jiang, Zhiwei and Gu, Qing and Han, Xiao and Yang, Wei},
-  booktitle={arXiv preprint arxiv: comming soon},
+  booktitle={arXiv preprint arXiv:2406.02511},
   year={2024}
 }
 ```
