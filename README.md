@@ -95,6 +95,14 @@ We recommend cropping a clear square face image as in the example below and maki
 
 **Scenario 1 (A's picture and A's talking video.) (Best Practice)**
 
+
+| Language | Open in Colab |
+|:---:|:---:|
+| Japanese | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15ck83cWUu50LDY_W051Eiqd9jSeeGxoM?usp=sharing) |
+| English | [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1KaQwkXaUfpyftp0uAwQmXNOFwPIb20lq?usp=sharing) |
+
+
+
 If you have a picture of A and a talking video of A in another scene. Then you should run the following script. Our model is able to generate speaking videos that are consistent with the given video. _You can see more examples on our [project page](https://tenvence.github.io/p/v-express/)._
 
 ```shell
