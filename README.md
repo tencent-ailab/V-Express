@@ -164,7 +164,9 @@ python inference.py \
     --kps_path "./test_samples/short_case/tys/kps.pth" \
     --output_path "./output/short_case/talk_tys_naive_retarget.mp4" \
     --retarget_strategy "naive_retarget" \
-    --num_inference_steps 25
+    --num_inference_steps 25 \
+    --reference_attention_weight 1.0 \
+    --audio_attention_weight 1.0
 ```
 
 <tr>
