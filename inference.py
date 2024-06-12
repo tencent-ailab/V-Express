@@ -28,11 +28,11 @@ def parse_args():
     parser.add_argument('--audio_encoder_path', type=str, default='./model_ckpts/wav2vec2-base-960h/')
     parser.add_argument('--insightface_model_path', type=str, default='./model_ckpts/insightface_models/')
 
-    parser.add_argument('--denoising_unet_path', type=str, default='./model_ckpts/v-express/denoising_unet.pth')
-    parser.add_argument('--reference_net_path', type=str, default='./model_ckpts/v-express/reference_net.pth')
-    parser.add_argument('--v_kps_guider_path', type=str, default='./model_ckpts/v-express/v_kps_guider.pth')
-    parser.add_argument('--audio_projection_path', type=str, default='./model_ckpts/v-express/audio_projection.pth')
-    parser.add_argument('--motion_module_path', type=str, default='./model_ckpts/v-express/motion_module.pth')
+    parser.add_argument('--denoising_unet_path', type=str, default='./model_ckpts/v-express/denoising_unet.bin')
+    parser.add_argument('--reference_net_path', type=str, default='./model_ckpts/v-express/reference_net.bin')
+    parser.add_argument('--v_kps_guider_path', type=str, default='./model_ckpts/v-express/v_kps_guider.bin')
+    parser.add_argument('--audio_projection_path', type=str, default='./model_ckpts/v-express/audio_projection.bin')
+    parser.add_argument('--motion_module_path', type=str, default='./model_ckpts/v-express/motion_module.bin')
 
     parser.add_argument('--retarget_strategy', type=str, default='fix_face') # fix_face, no_retarget, offset_retarget, naive_retarget
 
