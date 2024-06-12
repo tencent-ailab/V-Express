@@ -55,6 +55,7 @@ cd V-Express
 git lfs install
 git clone https://huggingface.co/tk93/V-Express
 mv V-Express/model_ckpts model_ckpts
+mv V-Express/*.bin model_ckpts/v-express
 
 # then you can use the scripts
 ```
