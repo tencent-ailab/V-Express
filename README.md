@@ -3,8 +3,7 @@
 <a href='https://tenvence.github.io/p/v-express/'><img src='https://img.shields.io/badge/Project-Page-green'></a>
 <a href='https://arxiv.org/abs/2406.02511'><img src='https://img.shields.io/badge/Technique-Report-red'></a>
 <a href='https://huggingface.co/tk93/V-Express'><img src='https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Model-blue'></a>
-
-<!-- [![GitHub](https://img.shields.io/github/stars/tencent-ailab/IP-Adapter?style=social)](https://github.com/tencent-ailab/IP-Adapter/) -->
+[![GitHub](https://img.shields.io/github/stars/tencent-ailab/V-Express?style=social)](https://github.com/tencent-ailab/V-Express/)
 
 ---
 
@@ -19,10 +18,11 @@ However, direct training with weak signals often leads to difficulties in conver
 To address this, we propose V-Express, a simple method that balances different control signals through a series of progressive drop operations.
 Our method gradually enables effective control by weak conditions, thereby achieving generation capabilities that simultaneously take into account pose, input image, and audio.
 
-![framework](./assets/global_framework.png)
+<img width="1000" alt="global_framework" src="https://github.com/tencent-ailab/V-Express/assets/19601425/0236e48a-a95e-4d9b-9c28-6d37e1cc3c5a">
 
 ## Release
 
+- [2024/06/15] 🔥 We have optimized memory usage, now supporting the generation of longer videos.
 - [2024/06/05] 🔥 We have released the technique report on [arXiv](https://arxiv.org/abs/2406.02511).
 - [2024/06/03] 🔥 If you are using ComfyUI, you can try [ComfyUI-V-Express](https://github.com/tiankuan93/ComfyUI-V-Express).
 - [2024/05/29] 🔥 We have added video post-processing that can effectively mitigate the flicker problem.
@@ -31,27 +31,14 @@ Our method gradually enables effective control by weak conditions, thereby achie
 ## Installation
 
 ```
-# install requirements
-pip install diffusers==0.24.0
-pip install imageio-ffmpeg==0.4.9
-pip install insightface==0.7.3
-pip install omegaconf==2.2.3
-pip install onnxruntime==1.16.3
-pip install safetensors==0.4.2
-pip install torch==2.0.1
-pip install torchaudio==2.0.2
-pip install torchvision==0.15.2
-pip install transformers==4.30.2
-pip install einops==0.4.1
-pip install tqdm==4.66.1
-pip install xformers==0.0.22
-pip install av==11.0.0
-
 # download the codes
 git clone https://github.com/tencent-ailab/V-Express
 
-# download the models
+# install requirements
 cd V-Express
+pip install -r requirements.txt
+
+# download the models
 git lfs install
 git clone https://huggingface.co/tk93/V-Express
 mv V-Express/model_ckpts model_ckpts
@@ -90,7 +77,7 @@ python scripts/extract_kps_sequence_and_audio.py \
 
 We recommend cropping a clear square face image as in the example below and making sure the resolution is no lower than 512x512. The green to red boxes in the image below are the recommended cropping ranges.
 
-<img src="./assets/crop_example.jpeg" alt="drawing" style="width:500px;"/>
+<img width="500" alt="crop_example" src="https://github.com/tencent-ailab/V-Express/assets/19601425/7c1d8df4-7267-46c7-a848-5130476467ef">
 
 ### Run the demo (step2, _core_)
 
@@ -111,6 +98,30 @@ python inference.py \
 <tr>
     <td colspan="4" style="text-align:center;">
       <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/17dd4103-eaf7-4045-8bc0-e90093deaee8" style="width: 80%; height: auto;"></video>
+    </td>
+</tr>
+
+We have optimized memory usage, now supporting the generation of longer videos. For a 31-second audio, it requires a peak memory of 7956MiB in a V100 test environment, with a total processing time of 2617.4 seconds. You can try it with the following script.
+
+> [!NOTE]
+> The `./test_samples/short_case/AOC/v_exprss_intro_chattts.mp3` is a long audio clip of about 30 seconds generated using [ChatTTS](https://github.com/2noise/ChatTTS), where we just need to enter a piece of text. We then use V-Express to generate a portrait video. This is probably an interesting pipeline.
+
+```shell
+python inference.py \
+    --reference_image_path "./test_samples/short_case/AOC/ref.jpg" \
+    --audio_path "./test_samples/short_case/AOC/v_exprss_intro_chattts.mp3" \
+    --kps_path "./test_samples/short_case/AOC/kps.pth" \
+    --output_path "./output/short_case/talk_AOC_chattts_no_retarget.mp4" \
+    --retarget_strategy "no_retarget" \
+    --num_inference_steps 25 \
+    --reference_attention_weight 1.0 \
+    --audio_attention_weight 1.0 \
+    --save_gpu_memory
+```
+
+<tr>
+    <td colspan="4" style="text-align:center;">
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/3ef0c553-0973-4431-94bb-58655cf244f7" style="width: 40%; height: auto;"></video>
     </td>
 </tr>
 

@@ -1,6 +1,8 @@
 import argparse
-
 import os
+import time
+
+import accelerate
 import cv2
 import numpy as np
 import torch
@@ -9,10 +11,9 @@ import torchvision.io
 from PIL import Image
 from diffusers import AutoencoderKL, DDIMScheduler
 from diffusers.utils.import_utils import is_xformers_available
-from diffusers.utils.torch_utils import randn_tensor
 from insightface.app import FaceAnalysis
 from omegaconf import OmegaConf
-from transformers import CLIPVisionModelWithProjection, Wav2Vec2Model, Wav2Vec2Processor
+from transformers import Wav2Vec2Model, Wav2Vec2Processor
 
 from modules import UNet2DConditionModel, UNet3DConditionModel, VKpsGuider, AudioProjection
 from pipelines import VExpressPipeline
@@ -34,11 +35,14 @@ def parse_args():
     parser.add_argument('--audio_projection_path', type=str, default='./model_ckpts/v-express/audio_projection.bin')
     parser.add_argument('--motion_module_path', type=str, default='./model_ckpts/v-express/motion_module.bin')
 
-    parser.add_argument('--retarget_strategy', type=str, default='fix_face') # fix_face, no_retarget, offset_retarget, naive_retarget
+    parser.add_argument('--retarget_strategy', type=str, default='fix_face',
+                        help='{fix_face, no_retarget, offset_retarget, naive_retarget}')
 
+    parser.add_argument('--dtype', type=str, default='fp16')
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--gpu_id', type=int, default=0)
-    parser.add_argument('--dtype', type=str, default='fp16')
+    parser.add_argument('--do_multi_devices_inference', action='store_true')
+    parser.add_argument('--save_gpu_memory', action='store_true')
 
     parser.add_argument('--num_pad_audio_frames', type=int, default=2)
     parser.add_argument('--standard_audio_sampling_rate', type=int, default=16000)
@@ -55,7 +59,6 @@ def parse_args():
     parser.add_argument('--num_inference_steps', type=int, default=25)
     parser.add_argument('--guidance_scale', type=float, default=3.5)
     parser.add_argument('--context_frames', type=int, default=12)
-    parser.add_argument('--context_stride', type=int, default=1)
     parser.add_argument('--context_overlap', type=int, default=4)
     parser.add_argument('--reference_attention_weight', default=0.95, type=float)
     parser.add_argument('--audio_attention_weight', default=3., type=float)
@@ -72,8 +75,8 @@ def load_reference_net(unet_config_path, reference_net_path, dtype, device):
     return reference_net
 
 
-def load_denoising_unet(inference_config_path, unet_config_path, denoising_unet_path, motion_module_path, dtype, device):
-    inference_config = OmegaConf.load(inference_config_path)
+def load_denoising_unet(inf_config_path, unet_config_path, denoising_unet_path, motion_module_path, dtype, device):
+    inference_config = OmegaConf.load(inf_config_path)
     denoising_unet = UNet3DConditionModel.from_config_2d(
         unet_config_path,
         unet_additional_kwargs=inference_config.unet_additional_kwargs,
@@ -129,8 +132,15 @@ def get_scheduler(inference_config_path):
 
 def main():
     args = parse_args()
+    start_time = time.time()
 
-    device = torch.device(f'{args.device}:{args.gpu_id}' if args.device == 'cuda' else args.device)
+    if not args.do_multi_devices_inference:
+        # TODO
+        accelerator = None
+        device = torch.device(f'{args.device}:{args.gpu_id}' if args.device == 'cuda' else args.device)
+    else:
+        accelerator = accelerate.Accelerator()
+        device = torch.device(f'cuda:{accelerator.process_index}')
     dtype = torch.float16 if args.dtype == 'fp16' else torch.float32
 
     vae_path = args.vae_path
@@ -197,6 +207,9 @@ def main():
     reference_image_for_kps = cv2.imread(args.reference_image_path)
     reference_image_for_kps = cv2.resize(reference_image_for_kps, (args.image_width, args.image_height))
     reference_kps = app.get(reference_image_for_kps)[0].kps[:3]
+    if args.save_gpu_memory:
+        del app
+    torch.cuda.empty_cache()
 
     _, audio_waveform, meta_info = torchvision.io.read_video(args.audio_path, pts_unit='sec')
     audio_sampling_rate = meta_info['audio_fps']
@@ -210,9 +223,13 @@ def main():
     audio_waveform = audio_waveform.mean(dim=0)
 
     duration = audio_waveform.shape[0] / args.standard_audio_sampling_rate
-    video_length = int(duration * args.fps)
+    init_video_length = int(duration * args.fps)
+    num_contexts = np.around((init_video_length + args.context_overlap) / args.context_frames)
+    video_length = int(num_contexts * args.context_frames - args.context_overlap)
+    fps = video_length / duration
     print(f'The corresponding video length is {video_length}.')
 
+    kps_sequence = None
     if args.kps_path != "":
         assert os.path.exists(args.kps_path), f'{args.kps_path} does not exist'
         kps_sequence = torch.tensor(torch.load(args.kps_path))  # [len, 3, 2]
@@ -235,19 +252,10 @@ def main():
 
     kps_images = []
     for i in range(video_length):
-        kps_image = np.zeros_like(reference_image_for_kps)
-        kps_image = draw_kps_image(kps_image, kps_sequence[i])
+        kps_image = draw_kps_image(args.image_height, args.image_width, kps_sequence[i])
         kps_images.append(Image.fromarray(kps_image))
 
-    vae_scale_factor = 8
-    latent_height = args.image_height // vae_scale_factor
-    latent_width = args.image_width // vae_scale_factor
-
-    latent_shape = (1, 4, video_length, latent_height, latent_width)
-    vae_latents = randn_tensor(latent_shape, generator=generator, device=device, dtype=dtype)
-
-    video_latents = pipeline(
-        vae_latents=vae_latents,
+    video_tensor = pipeline(
         reference_image=reference_image,
         kps_images=kps_images,
         audio_waveform=audio_waveform,
@@ -257,20 +265,22 @@ def main():
         num_inference_steps=args.num_inference_steps,
         guidance_scale=args.guidance_scale,
         context_frames=args.context_frames,
-        context_stride=args.context_stride,
         context_overlap=args.context_overlap,
         reference_attention_weight=args.reference_attention_weight,
         audio_attention_weight=args.audio_attention_weight,
         num_pad_audio_frames=args.num_pad_audio_frames,
         generator=generator,
-    ).video_latents
+        do_multi_devices_inference=args.do_multi_devices_inference,
+        save_gpu_memory=args.save_gpu_memory,
+    )
 
-    video_tensor = pipeline.decode_latents(video_latents)
-    if isinstance(video_tensor, np.ndarray):
-        video_tensor = torch.from_numpy(video_tensor)
-
-    save_video(video_tensor, args.audio_path, args.output_path, args.fps)
-    print(f'The generated video has been saved at {args.output_path}.')
+    if accelerator is None or accelerator.is_main_process:
+        save_video(video_tensor, args.audio_path, args.output_path, device, fps)
+        consumed_time = time.time() - start_time
+        generation_fps = video_tensor.shape[2] / consumed_time
+        print(f'The generated video has been saved at {args.output_path}. '
+              f'The generation time is {consumed_time:.1f} seconds. '
+              f'The generation FPS is {generation_fps:.2f}.')
 
 
 if __name__ == '__main__':

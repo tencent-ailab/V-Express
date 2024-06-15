@@ -1,14 +1,13 @@
-import torch
 import math
+import os
 import pathlib
 
 import cv2
 import numpy as np
-import os
-
+import torch
+import torch.nn.functional as func
+import tqdm
 from imageio_ffmpeg import get_ffmpeg_exe
-from scipy.ndimage import median_filter
-
 
 tensor_interpolation = None
 
@@ -26,9 +25,7 @@ def linear(v1, v2, t):
     return (1.0 - t) * v1 + t * v2
 
 
-def slerp(
-        v0: torch.Tensor, v1: torch.Tensor, t: float, DOT_THRESHOLD: float = 0.9995
-) -> torch.Tensor:
+def slerp(v0: torch.Tensor, v1: torch.Tensor, t: float, DOT_THRESHOLD: float = 0.9995) -> torch.Tensor:
     u0 = v0 / v0.norm()
     u1 = v1 / v1.norm()
     dot = (u0 * u1).sum()
@@ -39,12 +36,12 @@ def slerp(
     return (((1.0 - t) * omega).sin() * v0 + (t * omega).sin() * v1) / omega.sin()
 
 
-def draw_kps_image(image, kps, color_list=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
+def draw_kps_image(height, width, kps, color_list=[(255, 0, 0), (0, 255, 0), (0, 0, 255)]):
     stick_width = 4
     limb_seq = np.array([[0, 2], [1, 2]])
     kps = np.array(kps)
 
-    canvas = image
+    canvas = np.zeros((height, width, 3), dtype=np.uint8)
 
     for i in range(len(limb_seq)):
         index = limb_seq[i]
@@ -65,22 +62,40 @@ def draw_kps_image(image, kps, color_list=[(255, 0, 0), (0, 255, 0), (0, 0, 255)
     return canvas
 
 
-def save_video(video_tensor, audio_path, output_path, fps=30.0):
+def median_filter_3d(video_tensor, kernel_size, device):
+    _, video_length, height, width = video_tensor.shape
+
+    pad_size = kernel_size // 2
+    video_tensor = func.pad(video_tensor, (pad_size, pad_size, pad_size, pad_size, pad_size, pad_size), mode='reflect')
+
+    filtered_video_tensor = []
+    for i in tqdm.tqdm(range(video_length), desc='Median Filtering'):
+        video_segment = video_tensor[:, i:i + kernel_size, ...].to(device)
+        video_segment = video_segment.unfold(dimension=2, size=kernel_size, step=1)
+        video_segment = video_segment.unfold(dimension=3, size=kernel_size, step=1)
+        video_segment = video_segment.permute(0, 2, 3, 1, 4, 5).reshape(3, height, width, -1)
+        filtered_video_frame = torch.median(video_segment, dim=-1)[0]
+        filtered_video_tensor.append(filtered_video_frame.cpu())
+    filtered_video_tensor = torch.stack(filtered_video_tensor, dim=1)
+    return filtered_video_tensor
+
+
+def save_video(video_tensor, audio_path, output_path, device, fps=30.0):
     pathlib.Path(output_path).parent.mkdir(exist_ok=True, parents=True)
 
     video_tensor = video_tensor[0, ...]
     _, num_frames, height, width = video_tensor.shape
 
+    video_tensor = median_filter_3d(video_tensor, kernel_size=3, device=device)
     video_tensor = video_tensor.permute(1, 2, 3, 0)
-    video_np = (video_tensor * 255).numpy().astype(np.uint8)
-    video_np_filtered = median_filter(video_np, size=(3, 3, 3, 1))
+    video_frames = (video_tensor * 255).numpy().astype(np.uint8)
 
     output_name = pathlib.Path(output_path).stem
     temp_output_path = output_path.replace(output_name, output_name + '-temp')
     video_writer = cv2.VideoWriter(temp_output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
 
-    for i in range(num_frames):
-        frame_image = video_np_filtered[i]
+    for i in tqdm.tqdm(range(num_frames), 'Writing frames into file'):
+        frame_image = video_frames[i, ...]
         frame_image = cv2.cvtColor(frame_image, cv2.COLOR_RGB2BGR)
         video_writer.write(frame_image)
     video_writer.release()
@@ -128,7 +143,7 @@ def get_face_size(kps):
     B = kps[1, :]
     C = kps[2, :]
 
-    AB_dist = math.sqrt((A[0] - B[0])**2 + (A[1] - B[1])**2)
+    AB_dist = math.sqrt((A[0] - B[0]) ** 2 + (A[1] - B[1]) ** 2)
     C_AB_dist = point_to_line_dist(C, [A, B])
     return AB_dist, C_AB_dist
 
