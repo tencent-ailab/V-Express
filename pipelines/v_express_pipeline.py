@@ -1,10 +1,8 @@
 # Adapted from https://github.com/magic-research/magic-animate/blob/main/magicanimate/pipelines/pipeline_animation.py
 import inspect
 import math
-from dataclasses import dataclass
 from typing import Callable, List, Optional, Union
 
-import numpy as np
 import torch
 from diffusers import DiffusionPipeline
 from diffusers.image_processor import VaeImageProcessor
@@ -16,7 +14,7 @@ from diffusers.schedulers import (
     LMSDiscreteScheduler,
     PNDMScheduler,
 )
-from diffusers.utils import BaseOutput, is_accelerate_available
+from diffusers.utils import is_accelerate_available
 from diffusers.utils.torch_utils import randn_tensor
 from einops import rearrange
 from tqdm import tqdm
@@ -24,7 +22,6 @@ from transformers import CLIPImageProcessor
 
 from modules import ReferenceAttentionControl
 from .context import get_context_scheduler
-from .utils import get_tensor_interpolation_method
 
 
 def retrieve_timesteps(
@@ -69,11 +66,6 @@ def retrieve_timesteps(
         scheduler.set_timesteps(num_inference_steps, device=device, **kwargs)
         timesteps = scheduler.timesteps
     return timesteps, num_inference_steps
-
-
-@dataclass
-class PipelineOutput(BaseOutput):
-    video_latents: Union[torch.Tensor, np.ndarray]
 
 
 class VExpressPipeline(DiffusionPipeline):
@@ -162,16 +154,15 @@ class VExpressPipeline(DiffusionPipeline):
         video_length = latents.shape[2]
         latents = 1 / 0.18215 * latents
         latents = rearrange(latents, "b c f h w -> (b f) c h w")
-        # video = self.vae.decode(latents).sample
         video = []
-        for frame_idx in tqdm(range(latents.shape[0])):
+        for frame_idx in tqdm(range(latents.shape[0]), desc='Decoding latents into frames'):
             image = self.vae.decode(latents[frame_idx: frame_idx + 1].to(self.vae.device)).sample
+            image = (image / 2 + 0.5).clamp(0, 1)
+            image = image.cpu().float()
             video.append(image)
         video = torch.cat(video)
         video = rearrange(video, "(b f) c h w -> b c f h w", f=video_length)
-        video = (video / 2 + 0.5).clamp(0, 1)
-        # we always cast to float32 as this does not cause significant overhead and is compatible with bfloa16
-        video = video.cpu().float().numpy()
+
         return video
 
     def prepare_extra_step_kwargs(self, generator, eta):
@@ -340,51 +331,6 @@ class VExpressPipeline(DiffusionPipeline):
 
         return text_embeddings
 
-    def interpolate_latents(
-            self, latents: torch.Tensor, interpolation_factor: int, device
-    ):
-        if interpolation_factor < 2:
-            return latents
-
-        new_latents = torch.zeros(
-            (
-                latents.shape[0],
-                latents.shape[1],
-                ((latents.shape[2] - 1) * interpolation_factor) + 1,
-                latents.shape[3],
-                latents.shape[4],
-            ),
-            device=latents.device,
-            dtype=latents.dtype,
-        )
-
-        org_video_length = latents.shape[2]
-        rate = [i / interpolation_factor for i in range(interpolation_factor)][1:]
-
-        new_index = 0
-
-        v0 = None
-        v1 = None
-
-        for i0, i1 in zip(range(org_video_length), range(org_video_length)[1:]):
-            v0 = latents[:, :, i0, :, :]
-            v1 = latents[:, :, i1, :, :]
-
-            new_latents[:, :, new_index, :, :] = v0
-            new_index += 1
-
-            for f in rate:
-                v = get_tensor_interpolation_method()(
-                    v0.to(device=device), v1.to(device=device), f
-                )
-                new_latents[:, :, new_index, :, :] = v.to(latents.device)
-                new_index += 1
-
-        new_latents[:, :, new_index, :, :] = v1
-        new_index += 1
-
-        return new_latents
-
     def get_timesteps(self, num_inference_steps, strength, device):
         # get the original timestep using init_timestep
         init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
@@ -408,9 +354,16 @@ class VExpressPipeline(DiffusionPipeline):
             kps_image_tensor = kps_image_tensor.unsqueeze(2)  # [bs, c, 1, h, w]
             kps_image_tensors.append(kps_image_tensor)
         kps_images_tensor = torch.cat(kps_image_tensors, dim=2)  # [bs, c, t, h, w]
-        kps_images_tensor = kps_images_tensor.to(device=self.device, dtype=self.dtype)
 
-        kps_feature = self.v_kps_guider(kps_images_tensor)
+        bs = 16
+        num_forward = math.ceil(kps_images_tensor.shape[2] / bs)
+        kps_feature = []
+        for i in range(num_forward):
+            tensor = kps_images_tensor[:, :, i * bs:(i + 1) * bs, ...].to(device=self.device, dtype=self.dtype)
+            feature = self.v_kps_guider(tensor).cpu()
+            kps_feature.append(feature)
+            torch.cuda.empty_cache()
+        kps_feature = torch.cat(kps_feature, dim=2)
 
         if do_classifier_free_guidance:
             uc_kps_feature = torch.zeros_like(kps_feature)
@@ -453,7 +406,6 @@ class VExpressPipeline(DiffusionPipeline):
     @torch.no_grad()
     def __call__(
             self,
-            vae_latents,
             reference_image,
             kps_images,
             audio_waveform,
@@ -472,13 +424,12 @@ class VExpressPipeline(DiffusionPipeline):
             callback_steps: Optional[int] = 1,
             context_schedule="uniform",
             context_frames=24,
-            context_stride=1,
             context_overlap=4,
-            context_batch_size=1,
-            interpolation_factor=1,
             reference_attention_weight=1.,
             audio_attention_weight=1.,
             num_pad_audio_frames=2,
+            do_multi_devices_inference=False,
+            save_gpu_memory=False,
             **kwargs,
     ):
         # Default height and width to unet
@@ -494,7 +445,6 @@ class VExpressPipeline(DiffusionPipeline):
         timesteps = None
         timesteps, num_inference_steps = retrieve_timesteps(self.scheduler, num_inference_steps, device, timesteps)
         timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, device)
-        latent_timestep = timesteps[:1].repeat(batch_size * num_images_per_prompt)
 
         reference_control_writer = ReferenceAttentionControl(
             self.reference_net,
@@ -514,6 +464,50 @@ class VExpressPipeline(DiffusionPipeline):
         )
 
         num_channels_latents = self.denoising_unet.in_channels
+        extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
+
+        reference_image_latents = self.prepare_reference_latent(reference_image, height, width)
+        kps_feature = self.prepare_kps_feature(kps_images, height, width, do_classifier_free_guidance)
+        if save_gpu_memory:
+            del self.v_kps_guider
+        torch.cuda.empty_cache()
+        audio_embeddings = self.prepare_audio_embeddings(
+            audio_waveform,
+            video_length,
+            num_pad_audio_frames,
+            do_classifier_free_guidance,
+        )
+        if save_gpu_memory:
+            del self.audio_processor, self.audio_encoder, self.audio_projection
+        torch.cuda.empty_cache()
+
+        context_scheduler = get_context_scheduler(context_schedule)
+        context_queue = list(
+            context_scheduler(
+                step=0,
+                num_frames=video_length,
+                context_size=context_frames,
+                context_stride=1,
+                context_overlap=context_overlap,
+                closed_loop=False,
+            )
+        )
+
+        num_frame_context = torch.zeros(video_length, device=device, dtype=torch.long)
+        for context in context_queue:
+            num_frame_context[context] += 1
+
+        encoder_hidden_states = torch.zeros((1, 1, 768), dtype=self.dtype, device=self.device)
+        self.reference_net(
+            reference_image_latents,
+            timestep=0,
+            encoder_hidden_states=encoder_hidden_states,
+            return_dict=False,
+        )
+        reference_control_reader.update(reference_control_writer, do_classifier_free_guidance)
+        if save_gpu_memory:
+            del self.reference_net
+        torch.cuda.empty_cache()
 
         latents = self.prepare_latents(
             batch_size * num_images_per_prompt,
@@ -522,104 +516,62 @@ class VExpressPipeline(DiffusionPipeline):
             height,
             video_length,
             self.dtype,
-            device,
-            generator
-        )
-        latents = self.scheduler.add_noise(vae_latents, latents, latent_timestep)
-
-        # Prepare extra step kwargs.
-        extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
-
-        reference_image_latents = self.prepare_reference_latent(reference_image, height, width)
-        kps_feature = self.prepare_kps_feature(kps_images, height, width, do_classifier_free_guidance)
-        audio_embeddings = self.prepare_audio_embeddings(
-            audio_waveform,
-            video_length,
-            num_pad_audio_frames,
-            do_classifier_free_guidance,
+            torch.device('cpu'),
+            generator,
         )
 
-        context_scheduler = get_context_scheduler(context_schedule)
-
-        # denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
-                noise_pred = torch.zeros(
-                    (
-                        latents.shape[0] * (2 if do_classifier_free_guidance else 1),
-                        *latents.shape[1:],
-                    ),
-                    device=latents.device,
-                    dtype=latents.dtype,
-                )
-                counter = torch.zeros(
-                    (1, 1, latents.shape[2], 1, 1),
-                    device=latents.device,
-                    dtype=latents.dtype,
-                )
+                context_counter = torch.zeros(video_length, device=device, dtype=torch.long)
+                noise_preds = [None] * video_length
+                for context_idx, context in enumerate(context_queue):
+                    latent_kps_feature = kps_feature[:, :, context].to(device, self.dtype)
 
-                # 1. Forward reference image
-                if i == 0:
-                    encoder_hidden_states = torch.zeros((1, 1, 768), dtype=self.dtype, device=self.device)
-                    self.reference_net(
-                        reference_image_latents,
-                        torch.zeros_like(t),
-                        encoder_hidden_states=encoder_hidden_states,
-                        return_dict=False,
-                    )
-
-                context_queue = list(
-                    context_scheduler(
-                        0,
-                        num_inference_steps,
-                        latents.shape[2],
-                        context_frames,
-                        context_stride,
-                        context_overlap,
-                    )
-                )
-
-                num_context_batches = math.ceil(len(context_queue) / context_batch_size)
-                global_context = []
-                for i in range(num_context_batches):
-                    global_context.append(context_queue[i * context_batch_size: (i + 1) * context_batch_size])
-
-                for context in global_context:
-                    # 3.1 expand the latents if we are doing classifier free guidance
-                    latent_model_input = (
-                        torch.cat([latents[:, :, c] for c in context])
-                        .to(device)
-                        .repeat(2 if do_classifier_free_guidance else 1, 1, 1, 1, 1)
-                    )
-                    latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
-
-                    latent_kps_feature = torch.cat([kps_feature[:, :, c] for c in context])
-
-                    latent_audio_embeddings = torch.cat([audio_embeddings[:, c, ...] for c in context], dim=0)
+                    latent_audio_embeddings = audio_embeddings[:, context, ...]
                     _, _, num_tokens, dim = latent_audio_embeddings.shape
                     latent_audio_embeddings = latent_audio_embeddings.reshape(-1, num_tokens, dim)
 
-                    reference_control_reader.update(reference_control_writer, do_classifier_free_guidance)
-
-                    pred = self.denoising_unet(
-                        latent_model_input,
+                    input_latents = latents[:, :, context, ...].to(device)
+                    input_latents = input_latents.repeat(2 if do_classifier_free_guidance else 1, 1, 1, 1, 1)
+                    input_latents = self.scheduler.scale_model_input(input_latents, t)
+                    noise_pred = self.denoising_unet(
+                        input_latents,
                         t,
                         encoder_hidden_states=latent_audio_embeddings.reshape(-1, num_tokens, dim),
                         kps_features=latent_kps_feature,
                         return_dict=False,
                     )[0]
+                    if do_classifier_free_guidance:
+                        noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                        noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
 
-                    for j, c in enumerate(context):
-                        noise_pred[:, :, c] = noise_pred[:, :, c] + pred
-                        counter[:, :, c] = counter[:, :, c] + 1
+                    context_counter[context] += 1
+                    noise_pred /= num_frame_context[context][None, None, :, None, None]
+                    step_frame_ids = []
+                    step_noise_preds = []
+                    for latent_idx, frame_idx in enumerate(context):
+                        if noise_preds[frame_idx] is None:
+                            noise_preds[frame_idx] = noise_pred[:, :, latent_idx, ...]
+                        else:
+                            noise_preds[frame_idx] += noise_pred[:, :, latent_idx, ...]
+                        if context_counter[frame_idx] == num_frame_context[frame_idx]:
+                            step_frame_ids.append(frame_idx)
+                            step_noise_preds.append(noise_preds[frame_idx])
+                            noise_preds[frame_idx] = None
+                    step_noise_preds = torch.stack(step_noise_preds, dim=2)
+                    output_latents = self.scheduler.step(
+                        step_noise_preds,
+                        t,
+                        latents[:, :, step_frame_ids, ...].to(device),
+                        **extra_step_kwargs,
+                    ).prev_sample
+                    latents[:, :, step_frame_ids, ...] = output_latents.cpu()
 
-                # perform guidance
-                if do_classifier_free_guidance:
-                    noise_pred_uncond, noise_pred_text = (noise_pred / counter).chunk(2)
-                    noise_pred = noise_pred_uncond + guidance_scale * (noise_pred_text - noise_pred_uncond)
-
-                latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs).prev_sample
+                    progress_bar.set_description(
+                        f'Denoising Step Index: {i + 1} / {len(timesteps)}, '
+                        f'Context Index: {context_idx + 1} / {len(context_queue)}'
+                    )
 
                 if i == len(timesteps) - 1 or ((i + 1) > num_warmup_steps and (i + 1) % self.scheduler.order == 0):
                     progress_bar.update()
@@ -627,17 +579,8 @@ class VExpressPipeline(DiffusionPipeline):
                         step_idx = i // getattr(self.scheduler, "order", 1)
                         callback(step_idx, t, latents)
 
-            reference_control_reader.clear()
-            reference_control_writer.clear()
+        reference_control_reader.clear()
+        reference_control_writer.clear()
 
-        if interpolation_factor > 0:
-            latents = self.interpolate_latents(latents, interpolation_factor, device)
-
-        # Convert to tensor
-        if output_type == "tensor":
-            latents = latents
-
-        if not return_dict:
-            return latents
-
-        return PipelineOutput(video_latents=latents)
+        video_tensor = self.decode_latents(latents)
+        return video_tensor

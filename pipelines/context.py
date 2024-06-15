@@ -14,7 +14,6 @@ def ordered_halving(val):
 
 def uniform(
     step: int = ...,
-    num_steps: Optional[int] = None,
     num_frames: int = ...,
     context_size: Optional[int] = None,
     context_stride: int = 3,
