@@ -110,8 +110,8 @@ ${\color{red}New!!!}$ We have optimized memory usage, now supporting the generat
 python inference.py \
     --reference_image_path "./test_samples/short_case/AOC/ref.jpg" \
     --audio_path "./test_samples/short_case/AOC/v_exprss_intro_chattts.mp3" \
-    --kps_path "./test_samples/short_case/AOC/kps.pth" \
-    --output_path "./output/short_case/talk_AOC_chattts_no_retarget.mp4" \
+    --kps_path "./test_samples/short_case/AOC/AOC_raw_kps.pth" \
+    --output_path "./output/short_case/talk_AOC_raw_kps_chattts_no_retarget.mp4" \
     --retarget_strategy "no_retarget" \
     --num_inference_steps 25 \
     --reference_attention_weight 1.0 \
@@ -121,7 +121,7 @@ python inference.py \
 
 <tr>
     <td colspan="4" style="text-align:center;">
-      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/3ef0c553-0973-4431-94bb-58655cf244f7" style="width: 40%; height: auto;"></video>
+      <video muted="" autoplay="autoplay" loop="loop" src="https://github.com/tencent-ailab/V-Express/assets/19601425/3bb4c10b-eb25-4a92-81af-1b1e3269f334" style="width: 40%; height: auto;"></video>
     </td>
 </tr>
 

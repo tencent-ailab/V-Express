@@ -234,6 +234,10 @@ def main():
         assert os.path.exists(args.kps_path), f'{args.kps_path} does not exist'
         kps_sequence = torch.tensor(torch.load(args.kps_path))  # [len, 3, 2]
         print(f'The original length of kps sequence is {kps_sequence.shape[0]}.')
+
+        if kps_sequence.shape[0] > video_length:
+            kps_sequence = kps_sequence[:video_length, :, :]
+
         kps_sequence = torch.nn.functional.interpolate(kps_sequence.permute(1, 2, 0), size=video_length, mode='linear')
         kps_sequence = kps_sequence.permute(2, 0, 1)
         print(f'The interpolated length of kps sequence is {kps_sequence.shape[0]}.')
