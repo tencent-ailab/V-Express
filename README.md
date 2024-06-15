@@ -58,9 +58,9 @@ You can download models from [here](https://huggingface.co/tk93/V-Express). We h
 
 ## How to Use
 
-### <span style="color:red">Important Reminder</span>
+### Important Reminder
 
-**_Important! Important!! Important!!!_**
+${\color{red}Important! Important!! Important!!!}$
 
 In the talking-face generation task, when the target video is not the same person as the reference character, the retarget of the face will be a <span style="color:red">very important</span> part. And choosing a target video that is more similar to the pose of the reference face will be able to get better results. In addition, our model now performs better on English, and other languages have not yet been tested in detail.
 
@@ -101,7 +101,7 @@ python inference.py \
     </td>
 </tr>
 
-We have optimized memory usage, now supporting the generation of longer videos. For a 31-second audio, it requires a peak memory of 7956MiB in a V100 test environment, with a total processing time of 2617.4 seconds. You can try it with the following script.
+${\color{red}New!!!}$ We have optimized memory usage, now supporting the generation of longer videos. For a 31-second audio, it requires a peak memory of 7956MiB in a V100 test environment, with a total processing time of 2617.4 seconds. You can try it with the following script.
 
 > [!NOTE]
 > The `./test_samples/short_case/AOC/v_exprss_intro_chattts.mp3` is a long audio clip of about 30 seconds generated using [ChatTTS](https://github.com/2noise/ChatTTS), where we just need to enter a piece of text. We then use V-Express to generate a portrait video. This is probably an interesting pipeline.
