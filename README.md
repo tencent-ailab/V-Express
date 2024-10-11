@@ -22,6 +22,7 @@ Our method gradually enables effective control by weak conditions, thereby achie
 
 ## Release
 
+- [2024/10/11] 🔥 We release the training code.
 - [2024/06/15] 🔥 We have optimized memory usage, now supporting the generation of longer videos.
 - [2024/06/05] 🔥 We have released the technique report on [arXiv](https://arxiv.org/abs/2406.02511).
 - [2024/06/03] 🔥 If you are using ComfyUI, you can try [ComfyUI-V-Express](https://github.com/tiankuan93/ComfyUI-V-Express).
@@ -55,6 +56,13 @@ You can download models from [here](https://huggingface.co/tk93/V-Express). We h
 - [runwayml/stable-diffusion-v1-5](https://huggingface.co/runwayml/stable-diffusion-v1-5). Only the model configuration file for unet is needed here.
 - [facebook/wav2vec2-base-960h](https://huggingface.co/facebook/wav2vec2-base-960h).
 - [insightface/buffalo_l](https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip).
+
+## How to Train
+
+- stage_1, train use train_stage.sh and set `config=./training_configs/stage_1.yaml`
+- stage_2, train use train_stage.sh and set `config=./training_configs/stage_2.yaml`
+- stage_3, train use train_stage.sh and set `config=./training_configs/stage_3.yaml`
+
 
 ## How to Use
 
