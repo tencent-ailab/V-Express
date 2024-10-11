@@ -30,6 +30,7 @@ class ReferenceAttentionControl:
             batch_size=1,
             reference_attention_weight=1.,
             audio_attention_weight=1.,
+            reference_drop_rate=0.,
     ) -> None:
         # 10. Modify self attention and group norm
         self.unet = unet
@@ -40,6 +41,7 @@ class ReferenceAttentionControl:
         self.fusion_blocks = fusion_blocks
         self.reference_attention_weight = reference_attention_weight
         self.audio_attention_weight = audio_attention_weight
+        self.reference_drop_rate = reference_drop_rate
         self.register_reference_hooks(
             mode,
             do_classifier_free_guidance,
@@ -76,6 +78,7 @@ class ReferenceAttentionControl:
         reference_adain = reference_adain
         fusion_blocks = fusion_blocks
         num_images_per_prompt = num_images_per_prompt
+        reference_drop_rate = self.reference_drop_rate
         reference_attention_weight = self.reference_attention_weight
         audio_attention_weight = self.audio_attention_weight
         dtype = dtype
@@ -202,7 +205,12 @@ class ReferenceAttentionControl:
                     for d in self.bank:
                         if len(d.shape) == 3:
                             d = d.unsqueeze(1).repeat(1, video_length, 1, 1)
-                        bank_fea.append(rearrange(d, "b t l c -> (b t) l c"))
+                        d = rearrange(d, "b t l c -> (b t) l c")
+
+                        if reference_drop_rate != 0.:
+                            drop_mask = torch.rand(d.shape[0]) < reference_drop_rate
+                            d[drop_mask, ...] = 0.
+                        bank_fea.append(d)
 
                     attn_hidden_states = self.attn1_5(
                         norm_hidden_states,
@@ -314,6 +322,7 @@ class ReferenceAttentionControl:
             self,
             writer,
             do_classifier_free_guidance=True,
+            do_unconditional_forward=False,
             dtype=torch.float16,
     ):
         if self.reference_attn:
@@ -348,6 +357,8 @@ class ReferenceAttentionControl:
             for r, w in zip(reader_attn_modules, writer_attn_modules):
                 if do_classifier_free_guidance:
                     r.bank = [torch.cat([torch.zeros_like(v), v]).to(dtype) for v in w.bank]
+                elif do_unconditional_forward:
+                    r.bank = [torch.zeros_like(v).to(dtype) for v in w.bank]
                 else:
                     r.bank = [v.clone().to(dtype) for v in w.bank]
 

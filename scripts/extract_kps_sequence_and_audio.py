@@ -5,6 +5,7 @@ import cv2
 import torch
 from insightface.app import FaceAnalysis
 from imageio_ffmpeg import get_ffmpeg_exe
+from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--video_path', type=str, default='')
@@ -28,8 +29,10 @@ os.system(f'{get_ffmpeg_exe()} -i "{args.video_path}" -y -vn "{args.audio_save_p
 
 kps_sequence = []
 video_capture = cv2.VideoCapture(args.video_path)
+
+length = int(video_capture.get(cv2.CAP_PROP_FRAME_COUNT))
 frame_idx = 0
-while video_capture.isOpened():
+for i in tqdm(range(length)):
     ret, frame = video_capture.read()
     if not ret:
         break

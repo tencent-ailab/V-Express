@@ -25,8 +25,8 @@ class TemporalTransformer3DModelOutput(BaseOutput):
 
 
 if is_xformers_available():
-    import xformers
-    import xformers.ops
+    import xformers  # type: ignore #
+    import xformers.ops  # type: ignore #
 else:
     xformers = None
 

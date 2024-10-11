@@ -1,3 +1,4 @@
+import torch
 import argparse
 import os
 import time
@@ -5,7 +6,6 @@ import time
 import accelerate
 import cv2
 import numpy as np
-import torch
 import torchaudio.functional
 import torchvision.io
 from PIL import Image
@@ -13,12 +13,15 @@ from diffusers import AutoencoderKL, DDIMScheduler
 from diffusers.utils.import_utils import is_xformers_available
 from insightface.app import FaceAnalysis
 from omegaconf import OmegaConf
-from transformers import Wav2Vec2Model, Wav2Vec2Processor
+from transformers import Wav2Vec2Model, Wav2Vec2Processor, Wav2Vec2FeatureExtractor
 
 from modules import UNet2DConditionModel, UNet3DConditionModel, VKpsGuider, AudioProjection
 from pipelines import VExpressPipeline
-from pipelines.utils import draw_kps_image, save_video
+from pipelines.utils import save_video
 from pipelines.utils import retarget_kps
+from pipelines.utils import zero_module
+from datasets.utils import draw_kps_image
+from pipelines.context import compute_context_indices, compute_num_context
 
 
 def parse_args():
@@ -52,13 +55,16 @@ def parse_args():
     parser.add_argument('--kps_path', type=str, default='./test_samples/emo/talk_emotion/kps.pth')
     parser.add_argument('--output_path', type=str, default='./output/emo/talk_emotion.mp4')
 
+    parser.add_argument('--test_stage', type=str, default='stage_3')
+    parser.add_argument('--audio_embeddings_type', type=str, default='global', help='{global}')
+
     parser.add_argument('--image_width', type=int, default=512)
     parser.add_argument('--image_height', type=int, default=512)
     parser.add_argument('--fps', type=float, default=30.0)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--num_inference_steps', type=int, default=25)
     parser.add_argument('--guidance_scale', type=float, default=3.5)
-    parser.add_argument('--context_frames', type=int, default=12)
+    parser.add_argument('--context_frames', type=int, default=24)
     parser.add_argument('--context_overlap', type=int, default=4)
     parser.add_argument('--reference_attention_weight', default=0.95, type=float)
     parser.add_argument('--audio_attention_weight', default=3., type=float)
@@ -141,14 +147,26 @@ def main():
     else:
         accelerator = accelerate.Accelerator()
         device = torch.device(f'cuda:{accelerator.process_index}')
-    dtype = torch.float16 if args.dtype == 'fp16' else torch.float32
+    if args.dtype == 'fp16':
+        dtype = torch.float16
+    elif args.dtype == 'fp32':
+        dtype = torch.float32
+    elif args.dtype == 'bf16':
+        dtype = torch.bfloat16
+    else:
+        raise ValueError(f'Do not support {args.dtype}.')
 
     vae_path = args.vae_path
     audio_encoder_path = args.audio_encoder_path
 
     vae = AutoencoderKL.from_pretrained(vae_path).to(dtype=dtype, device=device)
-    audio_encoder = Wav2Vec2Model.from_pretrained(audio_encoder_path).to(dtype=dtype, device=device)
-    audio_processor = Wav2Vec2Processor.from_pretrained(audio_encoder_path)
+
+    if args.audio_embeddings_type == 'global':
+        audio_encoder = Wav2Vec2Model.from_pretrained(audio_encoder_path).to(dtype=dtype, device=device)
+        audio_processor = Wav2Vec2Processor.from_pretrained(audio_encoder_path)
+    else:
+        raise ValueError(f'Do not support {args.audio_embeddings_type}. '
+                         f'Now only support "global".')
 
     unet_config_path = args.unet_config_path
     reference_net_path = args.reference_net_path
@@ -165,22 +183,35 @@ def main():
         dtype, device
     )
     v_kps_guider = load_v_kps_guider(v_kps_guider_path, dtype, device)
+
+    if args.audio_embeddings_type == 'global':
+        inp_dim = 768
+    else:
+        raise ValueError(f'Do not support {args.audio_embeddings_type}. '
+                         f'Now only support "global".')
     audio_projection = load_audio_projection(
         audio_projection_path,
         dtype,
         device,
-        inp_dim=denoising_unet.config.cross_attention_dim,
+        inp_dim=inp_dim,
         mid_dim=denoising_unet.config.cross_attention_dim,
         out_dim=denoising_unet.config.cross_attention_dim,
         inp_seq_len=2 * (2 * args.num_pad_audio_frames + 1),
         out_seq_len=2 * args.num_pad_audio_frames + 1,
     )
 
-    if is_xformers_available():
-        reference_net.enable_xformers_memory_efficient_attention()
-        denoising_unet.enable_xformers_memory_efficient_attention()
+    if args.test_stage == 'stage_1':
+        for k, v in denoising_unet.named_parameters():
+            if 'temporal_transformer.proj_out' in k:
+                zero_module(v)
+            if 'attn2.to_out' in k:
+                zero_module(v)
+    elif args.test_stage == 'stage_2':
+        pass
+    elif args.test_stage == 'stage_3':
+        pass
     else:
-        raise ValueError("xformers is not available. Make sure it is installed correctly")
+        raise NotImplementedError(f"{args.test_stage}")
 
     generator = torch.manual_seed(args.seed)
     pipeline = VExpressPipeline(
@@ -224,10 +255,14 @@ def main():
 
     duration = audio_waveform.shape[0] / args.standard_audio_sampling_rate
     init_video_length = int(duration * args.fps)
-    num_contexts = np.around((init_video_length + args.context_overlap) / args.context_frames)
-    video_length = int(num_contexts * args.context_frames - args.context_overlap)
+
+    num_contexts = compute_num_context(init_video_length, args.context_frames, args.context_overlap)
+    context_indices = compute_context_indices(
+        num_context=num_contexts, context_size=args.context_frames, context_overlap=args.context_overlap
+    )
+    video_length = context_indices[-1][1] + 1
     fps = video_length / duration
-    print(f'The corresponding video length is {video_length}.')
+    print(f'The corresponding video length is {video_length}. fps: {fps}')
 
     kps_sequence = None
     if args.kps_path != "":

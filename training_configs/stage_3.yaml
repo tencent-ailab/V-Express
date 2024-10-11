@@ -1,0 +1,84 @@
+data:
+  train_bs: 1
+  train_width: 512
+  train_height: 512
+  meta_paths:
+    - 'hdtf_3kps.json'
+    - 'part_01_wo_low_res_wo_low_syncnet_conf.json'
+    - 'p2.json'
+    - 'p3.json'
+  flip_rate: 0.5
+  sample_rate: 1
+  num_frames: 8
+  reference_margin: 30
+  num_padding_audio_frames: 2
+  lip_loss_weight: 1
+  audio_embeddings_type: 'global' # {global}
+  reference_drop_rate: 0
+  kps_drop_rate: 0
+
+module_training:
+  denoising_unet: True
+  reference_net: True
+  v_kps_guider: True
+  audio_projection: True
+  motion_module: True
+
+solver:
+  gradient_accumulation_steps: 1
+  mixed_precision: 'fp16'
+  enable_xformers_memory_efficient_attention: True
+  reference_net_gradient_checkpointing: False
+  denoising_unet_gradient_checkpointing: False
+  max_train_steps: 100000
+  max_grad_norm: 1.0
+  # lr
+  learning_rate: 1e-6
+  scale_lr: False
+  lr_warmup_steps: 1
+  lr_scheduler: 'constant'
+
+  # optimizer
+  use_8bit_adam: True
+  adam_beta1: 0.9
+  adam_beta2: 0.999
+  adam_weight_decay: 1.0e-2
+  adam_epsilon: 1.0e-8
+
+val:
+  validation_steps: 20
+
+noise_scheduler_kwargs:
+  num_train_timesteps: 1000
+  beta_start: 0.00085
+  beta_end: 0.012
+  beta_schedule: 'scaled_linear'
+  steps_offset: 1
+  clip_sample: false
+
+base_model_path: '/dockerdata/sd-image-variations-diffusers'
+vae_model_path: '/dockerdata/sd-vae-ft-mse/'
+audio_encoder_path: '/dockerdata/wav2vec2-base-960h/'
+
+reference_net_path: './exp_output/stage_2_1/reference_net-135001.pth'
+denoising_unet_path: './exp_output/stage_2_1/denoising_unet-135001.pth'
+denoising_unet_state_dict_type: 'new_attn' # {moore_pretrained, old_attn, new_attn}
+motion_module_path: './exp_output/stage_2_1/motion_module-135001.pth'
+v_kps_guider_path: './exp_output/stage_2_1/v_kps_guider-135001.pth'
+audio_projection_path: './exp_output/stage_2_1/audio_projection-135001.pth'
+
+train_stage: 'stage_3'
+save_all: True
+
+weight_dtype: 'fp16' # [bf16, fp16, fp32]
+uncond_ratio: 0.1
+noise_offset: 0.05
+snr_gamma: 5.0
+enable_zero_snr: True
+stage1_ckpt_dir:
+stage1_ckpt_step: 283494
+
+seed: 42
+resume_from_checkpoint: ''
+checkpointing_steps: 5000
+output_dir: './exp_output'

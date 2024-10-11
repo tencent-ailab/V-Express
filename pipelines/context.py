@@ -4,6 +4,21 @@ from typing import Callable, List, Optional
 import numpy as np
 
 
+def compute_num_context(init_video_length, context_size, context_overlap):
+    step = context_size - context_overlap
+    num_windows = (init_video_length - context_size) // step + 1
+    return num_windows
+
+
+def compute_context_indices(num_context, context_size, context_overlap):
+    indices = []
+    for i in range(num_context):
+        start_index = i * (context_size - context_overlap)
+        end_index = start_index + context_size - 1
+        indices.append((start_index, end_index))
+    return indices
+
+
 def ordered_halving(val):
     bin_str = f"{val:064b}"
     bin_flip = bin_str[::-1]

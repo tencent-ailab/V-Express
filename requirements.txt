@@ -1,4 +1,4 @@
-diffusers==0.24.0
+diffusers==0.29.2
 imageio-ffmpeg==0.4.9
 insightface==0.7.3
 omegaconf==2.2.3

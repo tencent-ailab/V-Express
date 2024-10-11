@@ -358,6 +358,7 @@ class TemporalBasicTransformerBlock(nn.Module):
                 bias=attention_bias,
                 upcast_attention=upcast_attention,
             )
+            nn.init.zeros_(self.attn2.to_out[0].weight.data)
         else:
             self.attn2 = None
 

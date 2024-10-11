@@ -375,12 +375,15 @@ class VExpressPipeline(DiffusionPipeline):
         audio_waveform = self.audio_processor(audio_waveform, return_tensors="pt", sampling_rate=16000)['input_values']
         audio_waveform = audio_waveform.to(self.device, self.dtype)
         audio_embeddings = self.audio_encoder(audio_waveform).last_hidden_state  # [1, num_embeds, d]
+        in_dtype = audio_embeddings.dtype
 
+        audio_embeddings = audio_embeddings.to(dtype=torch.float32)
         audio_embeddings = torch.nn.functional.interpolate(
             audio_embeddings.permute(0, 2, 1),
             size=2 * video_length,
             mode='linear',
         )[0, :, :].permute(1, 0)  # [2*vid_len, dim]
+        audio_embeddings = audio_embeddings.to(dtype=in_dtype)
 
         audio_embeddings = torch.cat([
             torch.zeros_like(audio_embeddings)[:2 * num_pad_audio_frames, :],
@@ -403,34 +406,33 @@ class VExpressPipeline(DiffusionPipeline):
             audio_embeddings = torch.cat([uc_audio_embeddings, audio_embeddings], dim=0)
         return audio_embeddings
 
-    @torch.no_grad()
-    def __call__(
-            self,
-            reference_image,
-            kps_images,
-            audio_waveform,
-            width,
-            height,
-            video_length,
-            num_inference_steps,
-            guidance_scale,
-            strength=1.,
-            num_images_per_prompt=1,
-            eta: float = 0.0,
-            generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
-            output_type: Optional[str] = "tensor",
-            return_dict: bool = True,
-            callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
-            callback_steps: Optional[int] = 1,
-            context_schedule="uniform",
-            context_frames=24,
-            context_overlap=4,
-            reference_attention_weight=1.,
-            audio_attention_weight=1.,
-            num_pad_audio_frames=2,
-            do_multi_devices_inference=False,
-            save_gpu_memory=False,
-            **kwargs,
+    def mean_overlap(
+        self,
+        reference_image,
+        kps_images,
+        audio_waveform,
+        width,
+        height,
+        video_length,
+        num_inference_steps,
+        guidance_scale,
+        strength=1.,
+        num_images_per_prompt=1,
+        eta: float = 0.0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "tensor",
+        return_dict: bool = True,
+        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
+        callback_steps: Optional[int] = 1,
+        context_schedule="uniform",
+        context_frames=24,
+        context_overlap=4,
+        reference_attention_weight=1.,
+        audio_attention_weight=1.,
+        num_pad_audio_frames=2,
+        do_multi_devices_inference=False,
+        save_gpu_memory=False,
+        **kwargs,
     ):
         # Default height and width to unet
         height = height or self.unet.config.sample_size * self.vae_scale_factor
@@ -504,7 +506,7 @@ class VExpressPipeline(DiffusionPipeline):
             encoder_hidden_states=encoder_hidden_states,
             return_dict=False,
         )
-        reference_control_reader.update(reference_control_writer, do_classifier_free_guidance)
+        reference_control_reader.update(reference_control_writer, do_classifier_free_guidance, dtype=self.dtype)
         if save_gpu_memory:
             del self.reference_net
         torch.cuda.empty_cache()
@@ -518,7 +520,7 @@ class VExpressPipeline(DiffusionPipeline):
             self.dtype,
             torch.device('cpu'),
             generator,
-        )
+        )  # [bs, c, l, h, w]
 
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         with self.progress_bar(total=num_inference_steps) as progress_bar:
@@ -529,6 +531,7 @@ class VExpressPipeline(DiffusionPipeline):
                     latent_kps_feature = kps_feature[:, :, context].to(device, self.dtype)
 
                     latent_audio_embeddings = audio_embeddings[:, context, ...]
+
                     _, _, num_tokens, dim = latent_audio_embeddings.shape
                     latent_audio_embeddings = latent_audio_embeddings.reshape(-1, num_tokens, dim)
 
@@ -584,3 +587,60 @@ class VExpressPipeline(DiffusionPipeline):
 
         video_tensor = self.decode_latents(latents)
         return video_tensor
+
+    @torch.no_grad()
+    def __call__(
+        self,
+        reference_image,
+        kps_images,
+        audio_waveform,
+        width,
+        height,
+        video_length,
+        num_inference_steps,
+        guidance_scale,
+        strength=1.,
+        num_images_per_prompt=1,
+        eta: float = 0.0,
+        generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
+        output_type: Optional[str] = "tensor",
+        return_dict: bool = True,
+        callback: Optional[Callable[[int, int, torch.FloatTensor], None]] = None,
+        callback_steps: Optional[int] = 1,
+        context_schedule="uniform",
+        context_frames=24,
+        context_overlap=4,
+        reference_attention_weight=1.,
+        audio_attention_weight=1.,
+        num_pad_audio_frames=2,
+        do_multi_devices_inference=False,
+        save_gpu_memory=False,
+        **kwargs,
+    ):
+        return self.mean_overlap(
+            reference_image=reference_image,
+            kps_images=kps_images,
+            audio_waveform=audio_waveform,
+            width=width,
+            height=height,
+            video_length=video_length,
+            num_inference_steps=num_inference_steps,
+            guidance_scale=guidance_scale,
+            strength=strength,
+            num_images_per_prompt=num_images_per_prompt,
+            eta=eta,
+            generator=generator,
+            output_type=output_type,
+            return_dict=return_dict,
+            callback=callback,
+            callback_steps=callback_steps,
+            context_schedule=context_schedule,
+            context_frames=context_frames,
+            context_overlap=context_overlap,
+            reference_attention_weight=reference_attention_weight,
+            audio_attention_weight=audio_attention_weight,
+            num_pad_audio_frames=num_pad_audio_frames,
+            do_multi_devices_inference=do_multi_devices_inference,
+            save_gpu_memory=save_gpu_memory,
+            **kwargs,
+        )

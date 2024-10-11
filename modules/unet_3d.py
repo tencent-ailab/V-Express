@@ -636,7 +636,7 @@ class UNet3DConditionModel(ModelMixin, ConfigMixin):
 
         # load the motion module weights
         if motion_module_path.exists() and motion_module_path.is_file():
-            if motion_module_path.suffix.lower() in [".pth", ".pt", ".ckpt", ".bin"]:
+            if motion_module_path.suffix.lower() in [".pth", ".pt", ".ckpt"]:
                 logger.info(f"Load motion module params from {motion_module_path}")
                 motion_state_dict = torch.load(
                     motion_module_path, map_location="cpu", weights_only=True

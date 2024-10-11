@@ -26,6 +26,7 @@ from diffusers.models.embeddings import (
     TimestepEmbedding,
     Timesteps,
 )
+
 try:
     from diffusers.models.embeddings import PositionNet
 except:
