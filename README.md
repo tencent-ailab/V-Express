@@ -60,8 +60,9 @@ You can download models from [here](https://huggingface.co/tk93/V-Express). We h
 ## How to Train
 
 ### Data preparation
+For details, please refer to README of [prepare_dataset](https://github.com/tencent-ailab/V-Express/tree/main/scripts/prepare_dataset#training-data).
 
-
+### Training
 - stage_1, train use train_stage.sh and set `config=./training_configs/stage_1.yaml`
 - stage_2, train use train_stage.sh and set `config=./training_configs/stage_2.yaml`
 - stage_3, train use train_stage.sh and set `config=./training_configs/stage_3.yaml`
