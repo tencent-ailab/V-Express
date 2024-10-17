@@ -59,6 +59,9 @@ You can download models from [here](https://huggingface.co/tk93/V-Express). We h
 
 ## How to Train
 
+### Data preparation
+
+
 - stage_1, train use train_stage.sh and set `config=./training_configs/stage_1.yaml`
 - stage_2, train use train_stage.sh and set `config=./training_configs/stage_2.yaml`
 - stage_3, train use train_stage.sh and set `config=./training_configs/stage_3.yaml`

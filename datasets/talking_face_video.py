@@ -188,7 +188,6 @@ class TalkingFaceVideo(Dataset):
         while flag:
             video_info = dict(self.videos_info[index])
             video_path = video_info["video"]
-            kps_video_path = video_info["landmark"]
             face_info_path = video_info["face_info"]
             audio_embeddings_path = video_info["audio_embeds"]
 
@@ -197,13 +196,9 @@ class TalkingFaceVideo(Dataset):
                 pts_unit='sec',
                 output_format="TCHW",
             )
-            kps_frames, _, _ = torchvision.io.read_video(kps_video_path, pts_unit='sec', output_format="TCHW")
             face_info = torch.load(face_info_path)
 
-            video_len, kps_len, aud_len = video_frames.shape[0], kps_frames.shape[0], audio_waveform.shape[1]
-
-            assert video_len == kps_len, (f'The frame numbers is not equal in {video_path} and {kps_video_path}! '
-                                          f'(video_len is {video_len}, kps_len is {kps_len})')
+            video_len, aud_len = video_frames.shape[0], audio_waveform.shape[1]
 
             if video_len < self.num_frames:
                 print(f'The video_len of {video_path} is {video_len}, which is less than num_frames {self.num_frames}. '
