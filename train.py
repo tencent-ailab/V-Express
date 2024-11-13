@@ -29,6 +29,7 @@ from omegaconf import OmegaConf
 from tqdm.auto import tqdm
 from transformers import Wav2Vec2Model, Wav2Vec2Processor
 from diffusers.utils.import_utils import is_torch_npu_available
+from accelerate.utils import ProjectConfiguration, set_seed
 
 from datasets import TalkingFaceVideo
 from modules import UNet2DConditionModel, UNet3DConditionModel, VKpsGuider, AudioProjection, ReferenceAttentionControl
@@ -246,7 +247,7 @@ def main():
         diffusers.utils.logging.set_verbosity_error()
 
     if cfg.seed is not None:
-        seed_everything(cfg.seed)
+        set_seed(cfg.seed, device_specific=True)
 
     local_rank = accelerator.device
 
