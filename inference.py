@@ -7,7 +7,7 @@ import accelerate
 import cv2
 import numpy as np
 import torchaudio.functional
-import torchvision.io
+import torchaudio
 from PIL import Image
 from diffusers import AutoencoderKL, DDIMScheduler
 from diffusers.utils.import_utils import is_xformers_available
@@ -242,8 +242,7 @@ def main():
         del app
     torch.cuda.empty_cache()
 
-    _, audio_waveform, meta_info = torchvision.io.read_video(args.audio_path, pts_unit='sec')
-    audio_sampling_rate = meta_info['audio_fps']
+    audio_waveform, audio_sampling_rate = torchaudio.load(args.audio_path)
     print(f'Length of audio is {audio_waveform.shape[1]} with the sampling rate of {audio_sampling_rate}.')
     if audio_sampling_rate != args.standard_audio_sampling_rate:
         audio_waveform = torchaudio.functional.resample(
